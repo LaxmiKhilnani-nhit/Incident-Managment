@@ -21,7 +21,7 @@ The names and baseline responsibilities below come from source Sections 3-4 and 
 |---|---|---|
 | **RPO** | Android | Create basic incident/draft for own project, capture location/evidence, submit within 1 hour. Cannot view the record after submission. |
 | **CRO** | PWA | Completes the CRO stage and descriptive accident report when the availability toggle is enabled; gathers department inputs. The source's 5-day completion target attaches to this stage. |
-| **Corridor Incharge / Operations Manager Corridor** | PWA | When the CRO toggle is disabled, completes the CRO stage and routes directly to the configured HO final-approver list; no separate Corridor review is inserted in that path. Enabled-toggle pre-HO review details remain open. |
+| **Corridor Incharge / Operations Manager Corridor** | PWA | When the CRO toggle is disabled, completes the CRO stage in place of CRO; the same downstream Corridor/PM/HO stages continue where specified. Whether the same person may perform a later Corridor review is unresolved. |
 | **Project Manager** | PWA | Existing source behavior before HO: observer on A1 accidents; approves encroachment, violence, and public unrest; authorizes work permits. How these stages route to HO, and A2 incident authority, remain open. |
 | **HO** | PWA | Final approver for every workflow, acting through a configurable HO-level approver list; may also reopen closed incidents under source rules. Roster selection semantics and the enabled-toggle route before HO are open. |
 | **Admin** | PWA | Manage masters, workflow/report templates, SLAs, users, and potentially workflow settings if authorized; may reopen closed incidents under source rules. Admin is not an HO final approver by implication. |
@@ -38,7 +38,7 @@ The source says PIU, PD, and SP have **no system access**. Their notices/letters
 1. Enforce corridor/project/stretch scope on the server for every query and mutation.
 2. Revoke RPO record-view access immediately on submit; exceptions or the proposed 15-minute grace edit in Risk R4 need explicit approval.
 3. PM is an observer for A1 accidents, not an approver. Q2 conflicts on A2 work-zone accidents; do not infer a final permission.
-4. Every workflow ends at the configured HO final-approver list under the later user-directed requirement. Preserve source roles (including PM decisions) as possible preceding stages, but do not assume their exact order before HO.
+4. Every workflow ends at the configured HO final-approver list under the later user-directed requirement. The CRO toggle changes only the completion actor; preserve all existing downstream stages and their order, including PM before HO where specified. A1's PM remains a read-only observer.
 5. Only HO or Admin may reopen a closed incident. Reopening restarts at CRO.
 6. Maintenance Manager and Safety Officer use the PWA in the baseline. Q11 asks whether Safety should also receive an Android handset; this is unresolved.
 7. Approver assignments, backup coverage, temporary delegation, multi-role collision behavior, user onboarding/offboarding, and role-template change audit need decisions before implementation.
@@ -55,7 +55,7 @@ This process expresses the requested dynamic model. The scope names Admin as own
 2. **Choose templates:** Admin selects one or more enabled seed/custom role templates. A template describes capabilities, not a person's organization.
 3. **Scope assignment:** Admin assigns the template to a corridor/project/stretch and an effective period. Validate that the selected scope exists and that a child scope is within its parent.
 4. **Review/activate:** a proposed second-person review for privileged or broad assignments is recommended but not source-confirmed. If adopted, record requester, reviewer, timestamp, reason, and before/after values.
-5. **Configure workflow routing:** configure the CRO availability toggle and the HO final-approver list as versioned workflow settings. When disabled, the Corridor Manager completes the CRO stage and the task goes directly to HO, without a separate Corridor review step. Which Admin/HO actor may change or approve these settings is open; changes must be audited.
+5. **Configure workflow routing:** configure the CRO availability toggle and the HO final-approver list as versioned workflow settings. The toggle changes only whether CRO or Corridor Manager performs the CRO work; after completion, the workflow proceeds through its existing downstream stages in the same order. Which Admin/HO actor may change or approve these settings is open; changes must be audited.
 6. **Evaluate access at request time:** resolve active user -> active assignments -> scope intersection -> resource/action -> workflow state/field ownership -> final-approver roster membership where the transition is the HO gate. Every check is server-side.
 7. **Change/revoke:** role-template edits, assignments, and workflow settings are versioned and audited. Deactivation should stop new actions immediately; handling of in-flight tasks and historical read access needs policy.
 8. **Periodic review:** provide a report of dormant users, broad scopes, expired assignments, and users with multiple conflicting roles; review frequency is open.
@@ -72,7 +72,7 @@ For each request, evaluate the following in order:
 6. Does record visibility/field ownership allow this caller to read or change the requested fields?
 7. If all checks pass, record the accepted event and audit metadata; otherwise reject without partial state change.
 
-Assignments do not override the source's invariants: RPO cannot view a submitted record, the configured HO list is the final approval authority under the new user direction, and only HO/Admin can reopen a closed record. A2's enabled-toggle pre-HO route remains unresolved. A role grant must never confer data access outside its assigned scope. When CRO is disabled, whether the Corridor Manager completing the CRO stage may also be selected on the HO list is open; do not infer permission from holding both role templates.
+Assignments do not override the source's invariants: RPO cannot view a submitted record, the configured HO list is the final approval authority under the new user direction, and only HO/Admin can reopen a closed record. A2's source conflict remains unresolved. A role grant must never confer data access outside its assigned scope. When CRO is disabled, whether the Corridor Manager completing the CRO stage may also perform a later review or be selected on the HO list is open; do not infer permission from holding both role templates.
 
 ### Seed template capability matrix
 
@@ -82,7 +82,7 @@ Assignments do not override the source's invariants: RPO cannot view a submitted
 |---|---|---|---|
 | RPO | C/U own draft; S to workflow; R only before submission as specified | Capture GPS/photos; report immediate field facts | No view after submit; no approval |
 | CRO | R assigned queue; U CRO-owned descriptive sections; S to next stage when toggle enabled | Add department response details | The toggle selects who performs this completion stage; other workflow roles are unchanged |
-| Corridor | When CRO disabled, U/S for CRO-stage completion, then direct route to HO; source Corridor review when separately configured | X record notice milestones; endorse work-zone permit | No separate Corridor review in disabled-toggle route; same-identity overlap with HO roster remains open |
+| Corridor | When CRO disabled, U/S for CRO-stage completion; then all existing downstream stages continue | X record notice milestones; endorse work-zone permit | Whether the same person may complete and later review is open; no downstream stage is skipped |
 | Project Manager | Existing source observer/review/authorization duties before HO | X authorize permit; source PM approvals where still applicable | Exact pre-HO route and A2 incident role need reconciliation; HO remains final |
 | HO | R assigned scope; A final approval for every workflow through configured roster | X reopen closed incident | Roster selection semantics and eligible users are configurable/open |
 | Admin | No blanket incident grant or HO final-approval grant implied | X manage user/templates/masters/workflows/SLAs; X reopen; workflow-setting authority needs approval | Admin is not an HO approver unless separately configured through the approved HO roster |
@@ -98,8 +98,8 @@ Assignments do not override the source's invariants: RPO cannot view a submitted
 - Keep role-template version, capability diff, editor, timestamp, reason, and approval. Do not rewrite past audit events when a template changes.
 - Keep assignment effective dates and scope explicit. Decide whether future-effective changes apply to work already in progress.
 - A workflow configuration must name applicable module, current state, permitted action, eligible template/capability, next state, timer, escalation target, CRO-toggle behavior, and final HO approver list. Every workflow ends at the HO roster; the route before it remains open.
-- Treat the CRO availability toggle as controlling only the CRO completion-stage owner. When off, completion routes directly to HO and does not add a separate Corridor review step.
-- Whether a Corridor Manager completing the CRO stage may also appear on the HO list and give the final approval is an unresolved segregation-of-duties decision or recommendation, not an approved restriction or permission.
+- Treat the CRO availability toggle as controlling only the CRO completion-stage owner. It must not remove, add, or reorder downstream review/approval stages; preserve PM before HO where specified.
+- Whether a Corridor Manager completing the CRO stage may also perform a subsequent review or appear on the HO list and give final approval is an unresolved segregation-of-duties decision or recommendation, not an approved restriction or permission.
 - User-facing role labels may be localized or renamed without changing stable internal capability identifiers; localization itself remains an open product decision.
 - No dynamic permission editor should permit an administrator to remove mandatory invariants such as scope isolation, append-only audit, or HO/Admin-only reopen unless the source requirement is formally revised.
 

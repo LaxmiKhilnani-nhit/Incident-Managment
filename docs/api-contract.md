@@ -71,7 +71,7 @@ The device keeps draft changes and evidence in an encrypted local store, retries
 
 ## Authorization decisions still open
 
-The API should treat users, role templates, scoped assignments, CRO availability, and the HO final-approver roster as configuration data, while keeping invariant security rules in code. Every in-scope workflow must route to the configured HO list. The exact route before HO when CRO is enabled, roster selection rule (one/all/quorum/sequence), settings scope/effective-time behavior, settings editor/reviewer, and same-person completion/final-approval guard are open. Authentication/SSO, role-combination semantics, user provisioning, token/session policy, and A2 Project Manager rights are also not yet defined. PIU, PD, and SP are not IMS principals in the source scope.
+The API should treat users, role templates, scoped assignments, CRO availability, and the HO final-approver roster as configuration data, while keeping invariant security rules in code. Every in-scope workflow must route to the configured HO list. The CRO toggle changes only the completion actor; after completion, preserve the workflow's existing downstream stages and order, including PM before HO where specified. The roster selection rule (one/all/quorum/sequence), settings scope/effective-time behavior, settings editor/reviewer, same-person completion/review/final-approval guard, and source conflicts such as A2 Project Manager rights remain open. Authentication/SSO, role-combination semantics, user provisioning, and token/session policy are also not yet defined. PIU, PD, and SP are not IMS principals in the source scope.
 
 ## Proposed contract conventions
 
@@ -111,7 +111,7 @@ These conventions make the conceptual API testable; none are established by the 
 | `POST /api/v1/incidents` | Create draft; returns `201` with incident representation and revision | Assigned RPO, allowed project/family |
 | `GET /api/v1/incidents/{id}` | Incident and permitted module details | RPO denied after submit; PM accident access is read-only |
 | `PATCH /api/v1/incidents/{id}` | Partial fields in caller's editable section | Draft/state/field ownership checked; requires `If-Match` |
-| `POST /api/v1/incidents/{id}/submit` | Validate required fields and submit | RPO draft; creates completion-stage task for CRO or Corridor Manager according to toggle and audit event |
+| `POST /api/v1/incidents/{id}/submit` | Validate required fields and submit | RPO draft; assigns CRO-stage task to CRO or Corridor Manager by toggle, then preserves existing downstream workflow and audit trail |
 | `POST /api/v1/incidents/{id}/actions` | `approve`, `return`, or `reopen` plus reason/comment | Server enforces state, scope, and active HO roster for the final approval action |
 | `POST /api/v1/incidents/{id}/evidence` | Accept evidence metadata and content (or an approved chunked-upload protocol); return evidence id/status | Incident write permission; camera/watermark/count/size rules validated; storage mechanism is undecided |
 | `GET /api/v1/incidents/{id}/audit` | Authorized audit page | Read-only and scope-filtered |
@@ -215,7 +215,7 @@ On successful validation, a conceptual response is `202 Accepted` with the compl
 }
 ```
 
-The toggle changes only the completion-stage owner; it never bypasses the HO final stage. When disabled, the Corridor Manager's completion action routes directly to HO without a separate Corridor review. This proposal does not decide whether a listed HO approver acts alone or whether all/a quorum/sequence is required, which level may edit settings, whether changes apply to in-flight records, or whether the same person can complete and later approve.
+The toggle changes only the completion-stage owner; when disabled, Corridor Manager performs the CRO work and the existing downstream route continues unchanged. Preserve existing Corridor/PM stages and PM-before-HO order where specified; do not route directly to HO or skip a review. This proposal does not decide whether a listed HO approver acts alone or whether all/a quorum/sequence is required, which level may edit settings, whether changes apply to in-flight records, or whether the same person can complete and later review/approve.
 
 ## Offline sync and conflict rules
 
@@ -262,7 +262,7 @@ This is the source baseline, not a complete policy:
 |---|---|---|---|
 | RPO | Create own-project draft, submit; no view after submit | Capture/submit according to assigned scope | Android only in baseline |
 | CRO | Complete assigned descriptive report | Complete assigned report | PWA |
-| Corridor | Source review; completes CRO stage when toggle is off and then routes directly to HO | Pre-HO review when applicable; record notice stages | PWA; no implied separate review after its completion fallback |
+| Corridor | Source review; completes CRO stage when toggle is off; all existing downstream stages remain | Pre-HO review where source defines it; record notice stages | PWA; same-person review after completing CRO stage remains open |
 | Project Manager | Source read-only accident observer | Existing source approvals before HO where retained | Authorizes permits; exact pre-HO route and A2 authority remain open |
 | HO | Final approval for every workflow through configured roster; may reopen closed cases | Same final-approver rule | Roster selection and route before HO are open |
 | Admin | Configure users/masters/workflows/templates; may reopen | Same | Not an HO final approver by implication |

@@ -47,8 +47,8 @@ The following nouns are design aids only. Names, storage shape, and identifiers 
 1. An assigned RPO creates a local draft; the client validates fields and captures GPS/time/evidence metadata.
 2. On synchronization, the API resolves the user's current assignment and scope, rejects unauthorized or malformed changes, and safely accepts retries.
 3. Submission locks the RPO's edit/view permissions as specified; the CRO toggle assigns the completion-stage task to CRO or Corridor Manager.
-4. With CRO enabled, the completion stage follows the configured pre-HO route; that route remains open. With CRO disabled, Corridor Manager completion routes directly to the configured HO list without a separate Corridor review step.
-5. Every workflow reaches an eligible HO final approver. Workflow settings, task assignment, transition, decision, and configuration revision are audited; a Corridor Manager's completion does not imply review or approval authority. Whether the same identity can also appear on the HO list is open.
+4. The CRO toggle changes only the completion actor. After either CRO or Corridor Manager completes the stage, the existing downstream workflow continues unchanged; preserve PM before HO where specified. Do not remove Corridor review or other intermediate stages in the fallback path.
+5. Every workflow reaches an eligible HO final approver. Workflow settings, task assignment, transition, decision, and configuration revision are audited; a Corridor Manager's completion does not imply review or approval authority. Whether the same identity can perform a later review or appear on the HO list is open.
 6. Workflow rules update queues, deadlines, escalation, and (for accidents) scheduled auto-close. A closed incident can only be reopened by HO/Admin under the source rule; reconcile the source auto-close trigger with the new HO gate.
 7. Reporting reads authorized incident data and writes into the active prescribed template version; template version and export history remain traceable.
 
@@ -113,9 +113,9 @@ sequenceDiagram
     Workflow->>Queue: Assign completion task to Corridor Manager
   end
   alt CRO stage enabled
-    Workflow->>Queue: After completion, route through configured pre-HO path then HO
+    Workflow->>Queue: After completion, continue the existing downstream path then HO
   else CRO stage disabled
-    Workflow->>Queue: After completion, route directly to configured HO list
+    Workflow->>Queue: After completion, continue the same existing downstream path then HO
   end
   Workflow->>Audit: Record config revision and actor transition
   API-->>Field: Accepted result, state, revision, sync status

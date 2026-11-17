@@ -22,15 +22,15 @@ The source proposes one incident management system for NHIT/NHIPPL operations to
 
 ## Approval and lifecycle requirements
 
-The source baseline says RPO entry within 1 hour, CRO completion within 5 days, Corridor review within 48 hours, accident auto-close 3 days after Corridor approval, and HO/Admin-only reopen. The user has since directed that every workflow end with a final approval by a configurable HO-level approver list; this supersedes the draft source's earlier A1/non-accident approval distinction for the target design. The CRO stage is configurable: CRO completes it when enabled, and Corridor Manager completes it when disabled and routes directly to HO without a separate Corridor review. The source's 48-hour Corridor target therefore does not add a Corridor review to the disabled-toggle path; its applicability and clock boundary on the enabled path remain open. The source does not resolve whether SLA days are calendar or working days (Q6); the auto-close timer's start point under the new HO gate also needs confirmation.
+The source baseline says RPO entry within 1 hour, CRO completion within 5 days, Corridor review within 48 hours, accident auto-close 3 days after Corridor approval, and HO/Admin-only reopen. The user has since directed that every workflow end with a final approval by a configurable HO-level approver list; this supersedes the draft source's earlier A1/non-accident final-approval distinction for the target design. The CRO toggle changes only who performs the CRO stage: CRO when enabled or Corridor Manager when disabled. After either completes the work, all existing downstream stages and their order remain unchanged, including PM before HO where specified; A1's PM remains an observer, not an approver. The source does not resolve whether SLA days are calendar or working days (Q6); the auto-close timer's start point under the new HO gate also needs confirmation.
 
 ## Additional user-directed requirements (beyond source v1.5)
 
 These are direct project decisions and are not present in the unchanged root scope document:
 
-- **CRO availability toggle:** configuration selects whether CRO completes the CRO stage or the Corridor Manager performs those completion duties. When disabled, the Corridor Manager routes directly to HO without a separate Corridor review. The toggle does not select or remove the final HO approver.
-- **HO final-approver roster:** every in-scope workflow terminates at the configured HO-level final-approver list. The CRO-disabled fallback routes directly from Corridor Manager completion to HO, with no separate Corridor review. For the enabled path, exact stage ordering before HO, roster selection semantics (one listed approver, all, quorum, or sequence), configuration scope/effective-time behavior, and self-review controls remain open.
-- **Segregation of duties:** whether the Corridor Manager completing the CRO stage may also be selected as the HO approver is unresolved; do not treat same-identity final approval as permitted or prohibited until policy is decided.
+- **CRO availability toggle:** configuration selects whether CRO completes the CRO stage or the Corridor Manager performs those completion duties. The toggle changes only the completion actor; it does not skip, add, or reorder downstream stages.
+- **HO final-approver roster:** every in-scope workflow terminates at the configured HO-level final-approver list. Preserve existing downstream order, including PM before HO where specified. Roster selection semantics (one listed approver, all, quorum, or sequence), configuration scope/effective-time behavior, and module-specific source conflicts remain open.
+- **Segregation of duties:** whether the Corridor Manager completing the CRO stage may also perform a later review or be selected as the HO approver is unresolved; do not treat same-identity review/approval as permitted or prohibited until policy is decided.
 
 ## Explicit exclusions and deferrals
 
@@ -82,9 +82,9 @@ The root [scope document](../IMS-Scope-Document.md) is the readable source of tr
 ## User and operational journey
 
 1. **Capture:** RPO creates the occurrence record at the scene on Android, with GPS, device timestamp, and camera evidence. Offline drafts remain queued until synchronization.
-2. **Complete:** the CRO toggle routes the completion stage to CRO when enabled or to Corridor Manager when disabled; either route completes the descriptive accident report and required department data.
-3. **Pre-HO route:** with CRO enabled, the configured route before HO remains open and may include source-defined Corridor/other review stages. With CRO disabled, Corridor Manager completion goes directly to HO with no separate Corridor review. Required checks/co-approvals remain in scope and need mapping.
-4. **Final approval:** every in-scope workflow is routed to the configured HO final-approver list. The PM's role and other enabled-toggle pre-HO stages remain subject to source conflicts and open decisions.
+2. **Complete:** the CRO toggle assigns the CRO stage to CRO when enabled or Corridor Manager when disabled.
+3. **Pre-HO route:** whichever actor completes the stage, continue the same downstream route. Preserve existing Corridor/other reviews and PM-before-HO approvals where specified; A1's PM remains a read-only observer. Unresolved source conflicts such as A2 remain open.
+4. **Final approval:** every in-scope workflow is routed to the configured HO final-approver list after its existing downstream stages.
 5. **Close/reopen:** the source's A1 auto-close rule is three days after Corridor approval, but its trigger must be reconciled with the new HO-final stage. The source restricts reopening to HO/Admin.
 6. **Follow supporting work:** a work-zone record links to a permit and safety checks; a permanent encroachment record accrues dated notice milestones. Notifications, audit, and reports are derived from the same authorized record.
 
@@ -161,8 +161,8 @@ Before report implementation is called production-ready:
 | Decision | Source status | Required before |
 |---|---|---|
 | CRO stage availability toggle | Direct user requirement; toggle's scope/default and in-flight behavior open | Workflow configuration and task routing |
-| HO final-approver list | Direct user requirement for every workflow; enabled-toggle route before HO and list-selection semantics open | Authorization matrix and workflow implementation |
-| Same-person completion/HO approval | Open segregation-of-duties decision when Corridor Manager completes the CRO stage and may also appear on HO roster | Access policy and approval enforcement |
+| HO final-approver list | Direct user requirement for every workflow; preserve downstream order, including PM before HO where specified; list-selection semantics remain open | Authorization matrix and workflow implementation |
+| Same-person completion/review | Open segregation-of-duties decision when Corridor Manager completes the CRO stage and may later perform review or final approval | Access policy and approval enforcement |
 | Natural Disaster minimal record | Q1 recommends yes; not approved | Data model/report baseline |
 | Project Manager approves A2? | Section 4.2 says view-only; Q2 recommends approval | Authorization matrix and workflow implementation |
 | SPV/Vendor field 22 | Q3 recommends yes | RPO field contract and routing |

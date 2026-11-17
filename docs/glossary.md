@@ -11,7 +11,7 @@ Terms below follow [IMS Scope Document v1.5](../IMS-Scope-Document.md). Where th
 | **Chainage** | Position along the project road, recorded in the source as a masked kilometre/metre value and checked against project bounds. |
 | **Corridor** | Organizational/operational review level between CRO and higher approval roles. The source also refers to Corridor Incharge / Operations Manager Corridor. |
 | **CRO** | Control Room Officer; completes incident information and the descriptive accident report when the CRO toggle is enabled. When disabled, the Corridor Manager completes this stage. |
-| **CRO availability toggle** | User-directed workflow setting: enabled assigns the completion stage to CRO; disabled assigns it to Corridor Manager and routes that completion directly to the configured HO final-approver list. |
+| **CRO availability toggle** | User-directed workflow setting: enabled assigns the completion stage to CRO; disabled assigns it to Corridor Manager. It changes only the completion actor; all existing downstream stages and their order remain unchanged. |
 | **EHS** | Environment, Health and Safety wording appears in source form names and Safety Officer role labels; the formal organizational expansion is not defined there. |
 | **ERP** | System category named for payroll/procurement/asset-depreciation boundaries and a low-priority integration; expansion is not given in the source. |
 | **GIS** | Geographic/chainage integration category named by the source; exact system and contract are not specified. |
