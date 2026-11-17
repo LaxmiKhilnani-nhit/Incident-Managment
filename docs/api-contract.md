@@ -72,3 +72,181 @@ The device keeps draft changes and evidence in an encrypted local store, retries
 ## Authorization decisions still open
 
 The API should treat users, role templates, and scoped assignments as data, while keeping only invariant security rules in code. The exact authentication/SSO integration, role-combination semantics, user provisioning, dynamic permission editing, approval delegation, token/session policy, and A2 Project Manager rights are not yet defined. PIU, PD, and SP are not IMS principals in the source scope.
+
+## Proposed contract conventions
+
+These conventions make the conceptual API testable; none are established by the source:
+
+- **Representation:** JSON for resource metadata; binary evidence is uploaded through an API operation whose transport/storage implementation remains undecided.
+- **Versioning:** `/api/v1` is an example path. A breaking contract change would require a new major path or an explicitly approved compatibility policy; do not assume URL versioning is final.
+- **Timestamps:** ISO 8601 with offset. Preserve separate `occurredAt`, `deviceCapturedAt`, `receivedAt`, and `issuedAt` values where applicable. Never replace the printed notice date with server entry time.
+- **Concurrency:** return an opaque revision/ETag. Mutations use `If-Match`; stale revisions return a conflict rather than silently overwriting another actor's work.
+- **Retry:** all create/sync mutations carry an `Idempotency-Key` or stable client request ID. Same key and same payload returns the original accepted result; same key with a different payload is rejected.
+- **Identity:** authentication is supplied by an undecided approved identity integration. The API derives `actorId`, roles, and scope from the verified request context; it ignores role/scope claims in user-editable JSON.
+- **Pagination:** list endpoints use cursor pagination and bounded page size (exact limits are open); filters are applied after authorization, not before.
+
+## Resource model
+
+| Resource | Required conceptual fields | Owner / lifecycle |
+|---|---|---|
+| User | `id`, display identity, active status | Admin-managed; identity source is open |
+| Role template | `id`, name, capability set, version, enabled | Admin-managed proposal; source only states Admin manages users/workflows |
+| Assignment | user, role template, scope, effective period, status | Determines effective access; approval and multi-role rules are open |
+| Incident | id, family/subtype, location, occurrence time, state, revision, created/updated metadata | Shared core; module detail is family-specific |
+| Workflow action | action, actor, reason, timestamp, prior/resulting state | Append-only evidence of an allowed transition |
+| Evidence | id, media metadata, capture/receipt timestamps, provenance, upload status | Binary storage implementation is open |
+| Permit | id, project/scope, validity, checks, status, linked incidents | Work-zone support workflow |
+| Encroachment milestone | case, stage, printed issue date, allowed period, entry time, document reference | Corridor records offline-issued stages |
+| Report export | type, period/filter, template version, status, requester, output references | Generated from authorized data; template files supplied externally |
+
+## Proposed endpoint matrix
+
+`actor` below means the authenticated principal's server-resolved assignments and scope. No request parameter can widen it.
+
+| Method and path | Request / result | State / authorization |
+|---|---|---|
+| `GET /api/v1/me` | Current profile and effective assignments | Only the caller's own safe identity and assignments |
+| `GET /api/v1/incidents` | Filters: state, family, project, date, assigned queue; cursor response | Scope and role filters applied server-side |
+| `POST /api/v1/incidents` | Create draft; returns `201` with incident representation and revision | Assigned RPO, allowed project/family |
+| `GET /api/v1/incidents/{id}` | Incident and permitted module details | RPO denied after submit; PM accident access is read-only |
+| `PATCH /api/v1/incidents/{id}` | Partial fields in caller's editable section | Draft/state/field ownership checked; requires `If-Match` |
+| `POST /api/v1/incidents/{id}/submit` | Validate required fields and submit | RPO draft; creates CRO task and audit event |
+| `POST /api/v1/incidents/{id}/actions` | `approve`, `return`, or `reopen` plus reason/comment | Allowed transition only; action role, module, state, and scope checked |
+| `POST /api/v1/incidents/{id}/evidence` | Accept evidence metadata and content (or an approved chunked-upload protocol); return evidence id/status | Incident write permission; camera/watermark/count/size rules validated; storage mechanism is undecided |
+| `GET /api/v1/incidents/{id}/audit` | Authorized audit page | Read-only and scope-filtered |
+| `POST /api/v1/sync/batches` | Ordered offline operations, each with client idempotency key and base revision | Each item is authorized independently; returns per-item accepted/conflict/rejected result |
+| `POST /api/v1/permits`; `POST /api/v1/permits/{id}/checks` | Create permit/checklist response | Project Manager authorization and assigned Maintenance/Safety checks; lifecycle needs approval |
+| `POST /api/v1/encroachments/{id}/milestones` | Append notice/removal/cost-recovery event | Corridor assignment; printed date and recorded date are both required |
+| `POST /api/v1/reports/{reportCode}/exports` | Request report for period/scope; return export job/status | Scope, report permission, template availability/version checked |
+| `GET` / `POST /api/v1/admin/users`; `GET` / `POST` / `PATCH /api/v1/admin/role-templates`; `GET` / `POST` / `PATCH /api/v1/admin/assignments` | Manage dynamic users, role templates, and scoped assignments | Admin capability proposed; exact delegation and approval rules open |
+| `GET /api/v1/masters/{name}` | Read permitted master values | Organization scope; write operations require approved Admin policy |
+
+The list is a proposed starting surface, not a complete endpoint commitment. In particular, payloads for all 21 RPO fields, CRO report sections, each module, checklist answers, exports, and binary transfer need to be traced against the source files before implementation.
+
+## Example: create an offline accident draft
+
+```http
+POST /api/v1/incidents
+Content-Type: application/json
+Idempotency-Key: rpo-device-42:local-incident-981
+```
+
+```json
+{
+  "family": "accident",
+  "subtype": "road-user",
+  "occurredAt": "2026-11-17T09:00:00+05:30",
+  "location": {
+    "projectId": "assigned-project",
+    "chainage": "000.000",
+    "direction": "LHS",
+    "roadType": "main-carriageway",
+    "latitude": 12.0,
+    "longitude": 77.0,
+    "accuracyMeters": 25
+  },
+  "fieldData": {
+    "accidentCategory": "NON_OHS",
+    "crashType": "unknown",
+    "vehicleCount": 0,
+    "totalPersons": 0,
+    "killed": 0,
+    "grievous": 0,
+    "minor": 0
+  },
+  "capture": {
+    "deviceCapturedAt": "2026-11-17T09:05:00+05:30",
+    "evidenceClientIds": []
+  }
+}
+```
+
+Illustrative response:
+
+```http
+HTTP/1.1 201 Created
+ETag: "rev-1"
+```
+
+```json
+{
+  "id": "server-generated-id",
+  "state": "DRAFT",
+  "revision": 1,
+  "createdAt": "2026-11-17T09:05:05Z",
+  "sync": {
+    "clientRequestId": "rpo-device-42:local-incident-981",
+    "status": "accepted"
+  }
+}
+```
+
+The example omits required fields and is not a valid submission payload. `projectId`, coordinates, and timestamps are placeholders; the server must check that the authenticated RPO is assigned to that project. The field names and accepted enum values are proposals pending field-sheet reconciliation.
+
+## Example: submit and handle a conflict
+
+```http
+POST /api/v1/incidents/server-generated-id/submit
+If-Match: "rev-1"
+Idempotency-Key: rpo-device-42:submit-981
+Content-Type: application/json
+```
+
+```json
+{"comment": null}
+```
+
+On successful validation, a conceptual response is `202 Accepted` with the resulting `PENDING_CRO` state, a new revision, server `receivedAt`, and the CRO task/deadline. If required photos or casualty validation fail, return `422` with stable field errors; do not partially transition the incident. If another accepted write changed the revision, return `409` and the latest revision only if the caller is still authorized to read it.
+
+## Offline sync and conflict rules
+
+1. The client stores a durable local operation ID, base revision, operation order, and payload; it retries with the same idempotency key.
+2. The service deduplicates replayed operations. Reusing a key with a different body returns `409 IDEMPOTENCY_KEY_REUSED`.
+3. A sync batch returns an outcome for every item. One invalid item must not make unrelated results ambiguous; whether batches are atomic is an open contract decision.
+4. Source conflict policy is server-wins for master data and client-wins for a draft. Do not extend client-wins to submitted/approved records; require return/amendment/reopen policy and audit.
+5. Keep device capture time, occurrence time, server receipt time, and notice printed issue time separate for audit and SLA calculations.
+
+## Error contract proposal
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "The incident cannot be submitted yet.",
+    "correlationId": "opaque-support-id",
+    "fieldErrors": [
+      {"field": "evidence.accidentPhotos", "code": "MINIMUM_NOT_MET"}
+    ]
+  }
+}
+```
+
+| HTTP status | Proposed use |
+|---|---|
+| `400` | Malformed request or unsupported enum |
+| `401` | No valid authenticated principal |
+| `403` | Principal lacks assignment, scope, or action |
+| `404` | Unknown or intentionally undisclosed resource |
+| `409` | Stale revision, invalid state transition, duplicate key with different body |
+| `413` | Evidence exceeds approved upload limit |
+| `422` | Business validation failed; include field-level errors |
+| `429` | Rate limit, if one is selected |
+| `5xx` | Unexpected service failure; return correlation ID, never a success-shaped fallback |
+
+Do not expose another corridor's identifiers or validation data in errors. Error shape, retry policy, and rate limits must be approved.
+
+## Authorization matrix for the API
+
+This is the source baseline, not a complete policy:
+
+| Actor | Accident | B/C/E | Special |
+|---|---|---|---|
+| RPO | Create own-project draft, submit; no view after submit | Capture/submit according to assigned scope | Android only in baseline |
+| CRO | Complete assigned descriptive report | Complete assigned report | PWA |
+| Corridor | Review/approve accident; record notice stages | Intermediate review and notice recording | PWA |
+| Project Manager | Read-only accident access | Approve B/C/E | Authorizes permits; A2 incident authority is unresolved |
+| HO | No A1 approval gate; reopen only | Final approval; may reopen closed cases | PWA |
+| Admin | Configure users/masters/workflows/templates; may reopen | Same | Exact data access is not specified |
+| Maintenance/Safety | Work-zone checks only as assigned | Not a general approval role | PWA baseline |
+
+All roles remain subject to organization scope, record state, and field ownership. PIU, PD, and SP are not API users.

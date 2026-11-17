@@ -65,7 +65,103 @@ Additional detailed-design questions are listed after Q11 in the source (languag
 2. **Blank NHAI templates:** these are an explicit P0 dependency in Section 11.2 and Risk R11. The source permits provisional development against current report files, but export styling cannot be finalized until the blank templates are supplied per report.
 3. **Work-zone approval:** the A2 baseline and Q2 recommendation conflict; keep permission policy configurable until a decision is recorded.
 4. **Referenced materials:** the source refers to `.opencode/plan/incident-management-scope-v0.2.md`, `Reports/`, and `Formats/`. These are not root entries in the current repository tree; the reports ZIP may bundle related files, but its contents need inventory.
+5. **HO/Admin approval wording:** Section 3 groups “HO / Admin” for final approval, while Section 4.2 and the assumptions describe HO as the non-accident final approver. Reconcile whether Admin is an alternate approver or only an administrator/reopener before granting that capability.
 
 ## Source files
 
 The root [scope document](../IMS-Scope-Document.md) is the readable source of truth for this planning set. Other tracked references include the accident mobile-interface workbook, road-user process-flow PDF, permit SOP and forms, report/format ZIP, MoRTH reporting PDF, a PDF scope copy, and two images. Binary reference contents and the archive inventory should be reviewed before detailed field/report mappings are treated as verified.
+
+## User and operational journey
+
+1. **Capture:** RPO creates the occurrence record at the scene on Android, with GPS, device timestamp, and camera evidence. Offline drafts remain queued until synchronization.
+2. **Complete:** CRO enriches the brief field record into the internal descriptive accident report and supplies required department data.
+3. **Review:** Corridor validates the record, comments/edits, and makes the accountable accident approval. For other modules, Corridor is an intermediate approver.
+4. **Observe or approve:** PM receives accident notifications and observes accidents under the baseline; PM approves encroachment, violence, and public unrest. HO is the final approver for these non-accident modules.
+5. **Close/reopen:** accidents auto-close three days after Corridor approval; only HO/Admin may reopen. Non-accident closure follows PM/HO approvals.
+6. **Follow supporting work:** a work-zone record links to a permit and safety checks; a permanent encroachment record accrues dated notice milestones. Notifications, audit, and reports are derived from the same authorized record.
+
+Detailed actors, transition tables, timers, and exceptions are in [Workflows](workflows.md).
+
+## Measurable source outcomes
+
+These are source targets, not verified implementation results:
+
+| Source objective/target | Trace / interpretation |
+|---|---|
+| >=95% incidents created in-app; RPO entry within 1 hour | Section 1 O1; app adoption and capture-time metrics |
+| 100% complete GPS/time/photo evidence; all post-submit edits audited | Section 1 O2; integrity and audit coverage |
+| 100% traverse required approval levels; SLA breaches visible/escalated | Section 1 O3; workflow and escalation coverage |
+| All field forms work offline; zero data loss on sync | Section 1 O4 and Section 12; sync acceptance criteria |
+| All 17 formats generated from system data using prescribed templates | Section 1 O5 and Sections 11.1-11.2; count mismatch remains open |
+| Notice 1-3, PD notice, SP letter, removal/cost recovery dated and aged | Section 1 O6 and Section 7; notice intervals are open (Q4) |
+| Call response, arrival, and clearance computed per incident | Section 1 O7 and Section 12 |
+| Cold start <=3 s; lists <=2 s; API p95 <=500 ms; monthly report pack <=30 s | Section 12; test conditions and traffic volumes are open |
+
+## Report and register catalogue
+
+These are the 17 report names enumerated by source Section 11.1. Frequencies and summary content follow the source; archive membership still needs reconciliation.
+
+| # | Report | Frequency | Primary use |
+|---|---|---|---|
+| 1 | Highway Incident Report (HIR) | Per incident | Investigation, HSMU analysis, appendices/photos |
+| 2 | Accident Report (RPO/RPV) | Per accident | Response, casualty, damage, analysis, dual sign-off |
+| 3 | Incident Log (RPO) | Per shift | Patrol and incident record with shift totals |
+| 4 | Daily accident and incident report | Daily | Fatal/major/minor/non-injury totals |
+| 5 | Daily unusual occurrence accident report | Daily | Concession Agreement Article 16.6 occurrence details |
+| 6 | Monthly Break Down Report | Monthly | Breakdown occurrence and response |
+| 7 | Monthly Dead Animal Removal Report | Monthly | Dead-animal locations/types/removal |
+| 8 | Monthly Encroachment Removal data | Monthly | Removals by type, shift, action, and RPO |
+| 9 | Monthly unusual occurrence accident data | Monthly | Consolidated daily unusual-occurrence data |
+| 10 | Monthly utilisation of ambulance | Monthly | Deployment, calls, response, hospital trips |
+| 11 | Monthly vehicle responsible accident data | Monthly | Accident counts by responsible vehicle class |
+| 12 | Monthly Vehicle Running Status | Monthly | Vehicle kilometres, fuel, and expiry/service status |
+| 13 | Monthly Assets Damage Report | Monthly | Damage, theft, missing assets and quantities |
+| 14 | MPR (HQ Format) | Monthly | Ambulance, crane, encroachment, incident, response |
+| 15 | OMMPR Encroachment List | Monthly | Permanent encroachment register |
+| 16 | Year Accident Details | Monthly cumulative | Monthly severity totals and annual total |
+| 17 | Consolidate Report | Monthly | Combined monthly pack |
+
+Section 11.4 names ten linked registers: Daily Vehicle Inspection Report; RP Vehicle Equipment Checklist; Crane Vehicle Equipment Checklist; Log Book of Vehicles; First Aid Register; Ambulance Medicine Checklist/Consumption Register; Ambulance Patient Care Form (PCR serial only); Bio-Medical Waste Register; Incident Log (RPO); Accident Report (RPV). The registers are linked/generated from incident and vehicle data; the scope does not say all paper use is immediately retired.
+
+## Traceability to tracked source artifacts
+
+| Tracked source | How it is used by the scope | Verification status |
+|---|---|---|
+| [Scope v1.5 (Markdown)](../IMS-Scope-Document.md) | Canonical requirements, decisions, risks, exclusions, report list | Readable; this foundation set traces to it |
+| [Scope PDF](../IMS-Scope-Document.pdf) | Parallel scope artifact | Binary; equivalence to Markdown not independently verified |
+| [Accident Module mobile interface workbook](../Accident%20Module-%20Mobile%20Interface.xlsx) | Field/mobile interface reference | Binary; use the 21-field description in scope Section 5.2 provisionally |
+| [Road User Accident Module Process Flow](../Road%20User%20Accident%20Module%20Process%20Flow.pdf) | A1 process authority per scope Sections 4.1 and 14 | Diagram preview available; detailed text should be checked against the source before final build |
+| [SOP for Permit to Work](../SOP%20for%20Permit%20to%20Work.pdf) | Permit process basis for Section 6 | Binary; source scope summarizes the lifecycle |
+| [WAH permit EHS/FRM/019](../WAH%20permit-EHS-FRM-019.pdf) | Work-at-height checklist basis | Binary; scope Section 6.2 summarizes checklist categories |
+| [Work Permit Live Road Activities](../Work%20Permit%20Live%20Road%20Activities.pdf) | Live-road checklist basis | Binary; scope Section 6.2 lists 32 items by category |
+| [Reports and formats archive](../Incident%20Management%20Reports%20%26%20Format.zip) | Report/register samples used by scope Sections 11.1 and 11.4 | Archive not enumerated here; report count requires reconciliation |
+| [MoRTH accident-reporting formats](../morth-accident-reporting-formats-22-dec-2017.pdf) | Reference to statutory formats | Binary; scope explicitly defers MoRTH Sections A-E and aggregate tables |
+| [Create Accident mock-up](../image.jpg) and [second image](../image.png) | Visual source artifacts | JPG preview shows a capture form; PNG preview was not readable in prior inspection |
+
+The source also references `.opencode/plan/incident-management-scope-v0.2.md`, `Reports/`, `Formats/`, blank NHAI/NHIT workbooks, and a named Create Accident mock-up. These paths are not separate entries in the current root tree; the archive may contain some report/register materials, but its contents must be inventoried.
+
+## P0 prerequisites and report baseline
+
+Before report implementation is called production-ready:
+
+1. Reconcile all 17 report names in Section 11.1 with the 16 entries reported in the supplied report matrix/archive. Produce an approved one-to-one mapping; do not infer the missing/extra item.
+2. Obtain a blank NHAI/NHIT workbook for each report. Section 11.2 says the workbook must be populated without restyling; until real templates are available, cell mapping and visual fidelity remain provisional.
+3. Confirm which reports remain current (Q7), which templates and versions are authoritative, and whether historical exports must regenerate from the version effective at the time.
+
+## Decision register
+
+| Decision | Source status | Required before |
+|---|---|---|
+| Natural Disaster minimal record | Q1 recommends yes; not approved | Data model/report baseline |
+| Project Manager approves A2? | Section 4.2 says view-only; Q2 recommends approval | Authorization matrix and workflow implementation |
+| SPV/Vendor field 22 | Q3 recommends yes | RPO field contract and routing |
+| Notice time periods | Q4 open | Notice aging/escalation configuration |
+| Legal appeal case behavior | Q5 open | Permanent encroachment state model |
+| SLA values and calendar/work days | Q6 open | Scheduler and acceptance tests |
+| 17 current reports and blank workbooks | Q7 open; blank templates are P0 dependency | Report template registry/export sign-off |
+| Actual scale | Q8 open | Capacity and performance tests |
+| Go-live integrations | Q9 open | Integration architecture |
+| External MoRTH reporting | Q10 open | Reporting boundary |
+| Safety Officer handset | Q11 open; baseline is PWA-only | Work-zone operations and evidence |
+
+Recommendations in this table are not decisions. See [Users, roles, and access](roles-and-access.md) for dynamic role administration decisions and [API contract](api-contract.md) for API proposals.

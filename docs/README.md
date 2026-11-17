@@ -17,6 +17,27 @@ These are foundational planning documents for the Incident Management System (IM
 | [API contract](api-contract.md) | Illustrative resource and operation contract for a future API | Conceptual; not an implementation contract |
 | [Workflows](workflows.md) | Describe the incident, permit, and encroachment lifecycles | Source-derived; unresolved cases called out |
 | [Users, roles, and access](roles-and-access.md) | Propose dynamic user/role assignments and initial seed roles | User direction plus proposal; permission details need approval |
+| [Glossary](glossary.md) | Define domain terms and acronyms used by the source and foundation docs | Source-derived; expansions not supplied by the source are marked unknown |
+
+## Reader guide
+
+1. Read the root [IMS Scope Document](../IMS-Scope-Document.md) for the business requirements and approval status.
+2. Read [Scope and traceability](scope-and-traceability.md) to understand the boundaries, source mapping, required outcomes, and unresolved decisions.
+3. Use [Workflows](workflows.md) for day-to-day journeys: who creates, reviews, approves, records evidence, and handles exceptions.
+4. Use [Users, roles, and access](roles-and-access.md) and [Architecture](architecture.md) to understand how actors, clients, and system responsibilities fit together.
+5. Use [API contract](api-contract.md) only as a proposed technical interface for future implementation; it is not an existing API.
+
+## What this documentation does and does not decide
+
+The root scope is the authority for business requirements, subject to its draft status. These docs add explanations and technical proposals so a reader can follow the intended operation. A proposal is not an approval. Where the source conflicts with itself or asks a question, these docs show the conflict and do not silently select an answer.
+
+No application code exists in this documentation branch. The architecture, API, role configuration, error behavior, and diagrams describe a possible implementation shape only. Frameworks, database, hosting vendor, identity provider, authentication protocol, storage product, and deployment topology remain undecided.
+
+## Quick user journey
+
+An assigned RPO records an incident on an Android device, even when offline. The record and evidence synchronize to the service, which checks the user's scope and creates the next work item. CRO completes the descriptive report; Corridor reviews it. The next steps depend on the incident family: road-user accidents have a view-only Project Manager and auto-close, while other in-scope families proceed to their module-specific approvals. Permit checks, notice milestones, audit events, notifications, and report exports are supporting workflows, not separate sources of truth.
+
+This is a navigation-level summary. See [Workflows](workflows.md) for stage-by-stage rules and [Scope and traceability](scope-and-traceability.md) for exceptions and decisions.
 
 ## Status labels used here
 
