@@ -16,6 +16,7 @@ These are foundational planning documents for the Incident Management System (IM
 | [Scope and traceability](scope-and-traceability.md) | Map source requirements, exclusions, risks, discrepancies, and open decisions | Source-derived |
 | [API contract](api-contract.md) | Illustrative resource and operation contract for a future API | Conceptual; not an implementation contract |
 | [Workflows](workflows.md) | Describe the incident, permit, and encroachment lifecycles | Source-derived; unresolved cases called out |
+| [Functional specifications](functional-specifications.md) | Stable, traceable requirements and acceptance criteria for modules and cross-cutting behavior | Technical baseline; draft/source decisions and open items labeled |
 | [Users, roles, and access](roles-and-access.md) | Propose dynamic user/role assignments and initial seed roles | User direction plus proposal; permission details need approval |
 | [Glossary](glossary.md) | Define domain terms and acronyms used by the source and foundation docs | Source-derived; expansions not supplied by the source are marked unknown |
 
@@ -24,8 +25,9 @@ These are foundational planning documents for the Incident Management System (IM
 1. Read the root [IMS Scope Document](../IMS-Scope-Document.md) for the business requirements and approval status.
 2. Read [Scope and traceability](scope-and-traceability.md) to understand the boundaries, source mapping, required outcomes, and unresolved decisions.
 3. Use [Workflows](workflows.md) for day-to-day journeys: who creates, reviews, approves, records evidence, and handles exceptions.
-4. Use [Users, roles, and access](roles-and-access.md) and [Architecture](architecture.md) to understand how actors, clients, and system responsibilities fit together.
-5. Use [API contract](api-contract.md) only as a proposed technical interface for future implementation; it is not an existing API.
+4. Use [Functional specifications](functional-specifications.md) for requirement IDs, module contracts, source traceability, and acceptance criteria.
+5. Use [Users, roles, and access](roles-and-access.md) and [Architecture](architecture.md) to understand how actors, clients, and system responsibilities fit together.
+6. Use [API contract](api-contract.md) only as a proposed technical interface for future implementation; it is not an existing API.
 
 ## What this documentation does and does not decide
 

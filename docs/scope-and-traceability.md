@@ -44,11 +44,11 @@ These are direct project decisions and are not present in the unchanged root sco
 | Source location | Requirement area | Foundation document |
 |---|---|---|
 | Sections 1-3 | Objectives, channels, roles, visibility | [Architecture](architecture.md), [Users and roles](roles-and-access.md) |
-| Sections 4-5 | Approval stages, accident data, report, reopen | [Workflows](workflows.md), [API contract](api-contract.md) |
-| Section 6 | Permit lifecycle, work-zone checklists, SWI | [Workflows](workflows.md), [API contract](api-contract.md) |
-| Section 7 | Temporary/permanent encroachment lifecycle | [Workflows](workflows.md), [API contract](api-contract.md) |
-| Sections 8-9 | Violence/unrest, automation boundaries | [Workflows](workflows.md), [Architecture](architecture.md) |
-| Sections 10-12 | Design options, reports, cross-cutting constraints | [Architecture](architecture.md), [API contract](api-contract.md) |
+| Sections 4-5 | Approval stages, accident data, report, reopen | [Workflows](workflows.md), [Functional specifications](functional-specifications.md), [API contract](api-contract.md) |
+| Section 6 | Permit lifecycle, work-zone checklists, SWI | [Workflows](workflows.md), [Functional specifications](functional-specifications.md), [API contract](api-contract.md) |
+| Section 7 | Temporary/permanent encroachment lifecycle | [Workflows](workflows.md), [Functional specifications](functional-specifications.md), [API contract](api-contract.md) |
+| Sections 8-9 | Violence/unrest, automation boundaries | [Workflows](workflows.md), [Functional specifications](functional-specifications.md), [Architecture](architecture.md) |
+| Sections 10-12 | Design options, reports, cross-cutting constraints | [Architecture](architecture.md), [Functional specifications](functional-specifications.md), [API contract](api-contract.md) |
 | Sections 13-15 | Phases, risks, open decisions | This document and the relevant foundation documents |
 | Section 16 | Sign-off | Approval remains outstanding in the source |
 
