@@ -20,10 +20,10 @@ These constraints do not choose a product or implementation technology.
 This is a way to organize responsibilities, not a commitment to separate deployables or services.
 
 1. **Field client** - RPO draft capture, validation, GPS and camera metadata, encrypted local draft storage, retryable synchronization, and a visible sync state.
-2. **Office client** - role- and scope-aware queues, CRO completion, Corridor review, work-permit checks, notice logging, dashboards, and report requests.
+2. **Office client** - role- and scope-aware queues, CRO completion (or Corridor Manager fallback when the toggle is off), configured pre-HO reviews, work-permit checks, notice logging, dashboards, and report requests.
 3. **Application/API boundary** - validates requests, derives the acting user's effective assignments, enforces server-side permissions and scope, and records state-changing actions.
 4. **Incident core** - shared identity, location, evidence references, lifecycle, audit, notifications, and common descriptive fields. Module-specific fields and rules are configuration/data, not permission bypasses.
-5. **Workflow and SLA capability** - evaluates module/state transitions, deadlines, escalation, approval authority, returns, reopen, and scheduled auto-close.
+5. **Workflow and SLA capability** - evaluates module/state transitions, deadlines, escalation, returns, reopen, and scheduled auto-close; reads the CRO-stage toggle and routes every workflow to the configured HO final-approver list.
 6. **Supporting capabilities** - master data; permit-to-work and SWI; encroachment milestones; evidence/document handling; report template registry and exports; integrations.
 7. **External systems/parties** - GIS, messaging, SMTP, SSO, FIR reference, VMS/ATMS, CCTV, weather, or ERP integrations are prioritized in the source but remain subject to availability and go-live decisions. PIU, PD, and SP have no IMS user access in the source model; their notices are recorded by the Corridor.
 
@@ -46,10 +46,11 @@ The following nouns are design aids only. Names, storage shape, and identifiers 
 
 1. An assigned RPO creates a local draft; the client validates fields and captures GPS/time/evidence metadata.
 2. On synchronization, the API resolves the user's current assignment and scope, rejects unauthorized or malformed changes, and safely accepts retries.
-3. Submission locks the RPO's edit/view permissions as specified; workflow rules create the CRO task and deadline.
-4. CRO completion and subsequent reviews are recorded as explicit actions, with audit events and notifications.
-5. Workflow rules update queues, deadlines, escalation, and (for accidents) scheduled auto-close. A closed incident can only be reopened by HO/Admin.
-6. Reporting reads authorized incident data and writes into the active prescribed template version; template version and export history remain traceable.
+3. Submission locks the RPO's edit/view permissions as specified; the CRO toggle assigns the completion-stage task to CRO or Corridor Manager.
+4. With CRO enabled, the completion stage follows the configured pre-HO route; that route remains open. With CRO disabled, Corridor Manager completion routes directly to the configured HO list without a separate Corridor review step.
+5. Every workflow reaches an eligible HO final approver. Workflow settings, task assignment, transition, decision, and configuration revision are audited; a Corridor Manager's completion does not imply review or approval authority. Whether the same identity can also appear on the HO list is open.
+6. Workflow rules update queues, deadlines, escalation, and (for accidents) scheduled auto-close. A closed incident can only be reopened by HO/Admin under the source rule; reconcile the source auto-close trigger with the new HO gate.
+7. Reporting reads authorized incident data and writes into the active prescribed template version; template version and export history remain traceable.
 
 ## Required qualities and open design work
 
@@ -82,7 +83,7 @@ flowchart LR
 | PWA office client | Work queues, permitted review/edit forms, permit checks, notice entry, report requests, administrative screens | Authorization decisions based only on hidden/disabled UI controls |
 | API / policy boundary | Validates identity context, active assignment, scope, field/action permission, request shape, and concurrency | User-selected state changes that bypass workflow policy |
 | Incident core | Shared identity, module, location, lifecycle reference, source data, and links to workflow/evidence/audit | Module-specific legal/operational decisions that have not been approved |
-| Workflow/SLA capability | Allowed transitions, task ownership, deadlines, escalation, reopen rules, and scheduled accident auto-close | Human severity, causal analysis, notice service, or external legal decisions |
+| Workflow/SLA capability | Allowed transitions, CRO toggle, task ownership, deadlines, escalation, configured HO final-approver roster, reopen rules, and scheduled accident auto-close | Human severity, causal analysis, notice service, or external legal decisions |
 | Evidence/document capability | Evidence metadata, provenance, references, upload status, and retention policy hooks | A claim that client-supplied timestamps alone are trusted evidence |
 | Permit and encroachment capabilities | Permit/check/SWI links and dated encroachment milestones | Direct access for PIU, PD, or SP, which is excluded by the source |
 | Reporting capability | Report selection, template version, field mapping, generated workbook/PDF, export audit | Recreating/restyling the prescribed workbook in place of its template |
@@ -96,6 +97,7 @@ sequenceDiagram
   participant API as IMS API (proposed)
   participant Policy as Scope and workflow policy
   participant Core as Incident core
+  participant Workflow as Workflow/SLA rules
   participant Audit as Append-only audit
   participant Queue as Work queue/notifications
   Field->>Field: Save draft and evidence metadata offline
@@ -104,7 +106,18 @@ sequenceDiagram
   Policy-->>API: Allow/deny field and action
   API->>Core: Validate and persist accepted change
   Core->>Audit: Record actor, event time, old/new values, reason
-  Core->>Queue: Create CRO work item after valid submission
+  Core->>Workflow: Resolve CRO toggle and active HO roster
+  alt CRO stage enabled
+    Workflow->>Queue: Assign completion task to CRO
+  else CRO stage disabled
+    Workflow->>Queue: Assign completion task to Corridor Manager
+  end
+  alt CRO stage enabled
+    Workflow->>Queue: After completion, route through configured pre-HO path then HO
+  else CRO stage disabled
+    Workflow->>Queue: After completion, route directly to configured HO list
+  end
+  Workflow->>Audit: Record config revision and actor transition
   API-->>Field: Accepted result, state, revision, sync status
 ```
 

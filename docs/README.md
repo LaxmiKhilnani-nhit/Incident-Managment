@@ -35,7 +35,7 @@ No application code exists in this documentation branch. The architecture, API, 
 
 ## Quick user journey
 
-An assigned RPO records an incident on an Android device, even when offline. The record and evidence synchronize to the service, which checks the user's scope and creates the next work item. CRO completes the descriptive report; Corridor reviews it. The next steps depend on the incident family: road-user accidents have a view-only Project Manager and auto-close, while other in-scope families proceed to their module-specific approvals. Permit checks, notice milestones, audit events, notifications, and report exports are supporting workflows, not separate sources of truth.
+An assigned RPO records an incident on an Android device, even when offline. The record and evidence synchronize to the service, which checks the user's scope and creates the next work item. A configurable CRO toggle routes the completion stage either to CRO or to the Corridor Manager. When disabled, the Corridor Manager's completion routes directly to the configured HO final-approver list, without a separate Corridor review; every in-scope workflow ends at that HO list. The enabled-toggle route before HO, same-identity eligibility for final approval, and how the HO list is applied remain design decisions. Permit checks, notice milestones, audit events, notifications, and report exports are supporting workflows, not separate sources of truth.
 
 This is a navigation-level summary. See [Workflows](workflows.md) for stage-by-stage rules and [Scope and traceability](scope-and-traceability.md) for exceptions and decisions.
 

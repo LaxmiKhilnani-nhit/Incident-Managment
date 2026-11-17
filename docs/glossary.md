@@ -4,18 +4,20 @@ Terms below follow [IMS Scope Document v1.5](../IMS-Scope-Document.md). Where th
 
 | Term | Meaning in this documentation |
 |---|---|
-| **A1** | Road-user accident module. The source defines its reference flow as RPO -> CRO -> Corridor, PM observer, auto-close, and HO/Admin-only reopen. |
+| **A1** | Road-user accident module. Source v1.5 defines RPO -> CRO -> Corridor, PM observer, auto-close, and HO/Admin-only reopen; later user direction adds a configurable HO final-approval stage and CRO fallback toggle. |
 | **A2** | Work-zone accident module, linked to a work permit and additional Maintenance/Safety checks. Project Manager approval is unresolved. |
 | **API** | Application programming interface. The API described here is conceptual; no implementation exists. |
 | **ATMS** | System named as a medium-priority integration in the source; its expansion and actual interface are not specified. |
 | **Chainage** | Position along the project road, recorded in the source as a masked kilometre/metre value and checked against project bounds. |
 | **Corridor** | Organizational/operational review level between CRO and higher approval roles. The source also refers to Corridor Incharge / Operations Manager Corridor. |
-| **CRO** | Control Room Officer; completes incident information and the descriptive accident report, then submits to Corridor. |
+| **CRO** | Control Room Officer; completes incident information and the descriptive accident report when the CRO toggle is enabled. When disabled, the Corridor Manager completes this stage. |
+| **CRO availability toggle** | User-directed workflow setting: enabled assigns the completion stage to CRO; disabled assigns it to Corridor Manager and routes that completion directly to the configured HO final-approver list. |
 | **EHS** | Environment, Health and Safety wording appears in source form names and Safety Officer role labels; the formal organizational expansion is not defined there. |
 | **ERP** | System category named for payroll/procurement/asset-depreciation boundaries and a low-priority integration; expansion is not given in the source. |
 | **GIS** | Geographic/chainage integration category named by the source; exact system and contract are not specified. |
 | **HIR** | Highway Incident Report; formal investigation document prepared by HSMU with cause analysis and appendices. |
-| **HO** | Final corporate approval role in non-accident flows and one of the only roles allowed to reopen closed incidents. The source does not expand the acronym; Section 3 groups HO/Admin for final approval, while later text names HO, so that authority needs reconciliation. |
+| **HO** | Final approver for every workflow under the later user-directed decision, selected through a configurable HO-level list; may also reopen closed incidents under source rules. The source does not expand the acronym. |
+| **HO final-approver list** | Configurable set of HO users eligible for the final workflow decision. Whether one member, all, a quorum, or an ordered sequence must approve remains open. |
 | **HSMU** | Highway Safety Management Unit; investigation team for the HIR. |
 | **IMS** | Incident Management System. |
 | **Idempotency key** | Proposed API retry identifier that lets a client replay one operation without intentionally creating duplicate incidents. It is not a source-defined API field. |
@@ -30,7 +32,7 @@ Terms below follow [IMS Scope Document v1.5](../IMS-Scope-Document.md). Where th
 | **PCR** | Ambulance Patient Care Form reference; IMS stores the PCR serial number only, not the clinical content. |
 | **PD** | Project Director; issues an offline notice and sends the SP assistance letter in the permanent-encroachment process. |
 | **PIU** | Project Implementation Unit; issues offline encroachment notices, which Corridor records in IMS. |
-| **PM / Project Manager** | Project Manager role. Read-only observer on accidents in the baseline; approves B/C/E and authorizes work permits. A2 incident authority is open. |
+| **PM / Project Manager** | Project Manager role. Source baseline: read-only observer on A1 accidents; approves B/C/E and authorizes work permits. Exact pre-HO routing and A2 authority remain open under the later universal HO-final requirement. |
 | **PWA** | Progressive Web App; office console for the source's non-RPO users. |
 | **RPO** | Route Patrolling Officer; creates the initial field incident in the Android app and loses view access after submission. |
 | **RPV** | Vehicle/report label appearing in the source (for example RPV-I and Accident Report RPO/RPV); its expansion is not specified. |
@@ -60,7 +62,7 @@ Terms below follow [IMS Scope Document v1.5](../IMS-Scope-Document.md). Where th
 | **Submit** | A validated action that hands the record to the next workflow actor and starts the next stage clock. |
 | **Return / rework** | A reviewer sends a record back with a reason; the exact allowed actors and clock-pause rules remain open. |
 | **Approve** | A role-authorized decision that advances the current workflow stage; a client cannot directly set the state. |
-| **Auto-close** | Scheduler closes an approved accident three days after approval, per the source baseline. |
-| **Reopen** | HO/Admin-only action for a closed incident; the accident cycle resumes at CRO. |
+| **Auto-close** | Scheduler closes an approved accident three days after Corridor approval, per source v1.5; its trigger must be reconciled with the later HO final-approval gate. |
+| **Reopen** | HO/Admin-only action for a closed incident under the source rule; the completion stage resumes and the CRO toggle selects its actor. |
 | **Notice milestone** | Dated permanent-encroachment event with issuer, printed date, allowed period, entry time, and evidence. |
 | **Template-locked export** | Populate an approved NHAI/NHIT workbook without restyling it; create the PDF from that populated workbook. |

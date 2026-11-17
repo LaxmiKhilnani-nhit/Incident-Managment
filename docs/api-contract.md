@@ -27,7 +27,7 @@
 | `POST /permits` / `GET /permits/{id}` | Create/read a work permit and its checks | Project Manager authorizes work; Maintenance/Safety verification channel is PWA in source baseline |
 | `POST /incidents/{id}/notice-milestones` | Record an offline-issued encroachment notice/document milestone | Corridor records it; ageing uses printed issue date, not entry date |
 | `POST /reports/{reportType}/exports` | Request a report export | Permission and data scope are server-enforced; export records template version |
-| `GET /admin/users`, `/admin/roles`, `/admin/assignments` | Administer dynamic users, role templates, and scoped assignments | These resources are a proposal derived from the user's dynamic-role direction; exact administration policy is open |
+| `GET /admin/users`, `/admin/roles`, `/admin/assignments`, `/admin/workflow-settings` | Administer dynamic users, role templates, scoped assignments, CRO toggle, and HO final-approver roster | Settings endpoints are conceptual; editor, reviewer, scope, effective-time, and list-selection rules are open |
 
 The work-permit, notice, export, and user-management paths are conceptual examples; the scope does not define HTTP routes.
 
@@ -71,7 +71,7 @@ The device keeps draft changes and evidence in an encrypted local store, retries
 
 ## Authorization decisions still open
 
-The API should treat users, role templates, and scoped assignments as data, while keeping only invariant security rules in code. The exact authentication/SSO integration, role-combination semantics, user provisioning, dynamic permission editing, approval delegation, token/session policy, and A2 Project Manager rights are not yet defined. PIU, PD, and SP are not IMS principals in the source scope.
+The API should treat users, role templates, scoped assignments, CRO availability, and the HO final-approver roster as configuration data, while keeping invariant security rules in code. Every in-scope workflow must route to the configured HO list. The exact route before HO when CRO is enabled, roster selection rule (one/all/quorum/sequence), settings scope/effective-time behavior, settings editor/reviewer, and same-person completion/final-approval guard are open. Authentication/SSO, role-combination semantics, user provisioning, token/session policy, and A2 Project Manager rights are also not yet defined. PIU, PD, and SP are not IMS principals in the source scope.
 
 ## Proposed contract conventions
 
@@ -92,6 +92,7 @@ These conventions make the conceptual API testable; none are established by the 
 | User | `id`, display identity, active status | Admin-managed; identity source is open |
 | Role template | `id`, name, capability set, version, enabled | Admin-managed proposal; source only states Admin manages users/workflows |
 | Assignment | user, role template, scope, effective period, status | Determines effective access; approval and multi-role rules are open |
+| Workflow settings | scope, CRO-stage enabled flag, HO final-approver user list, effective period, revision | User-directed configuration; setting editor, scope, and approver-selection semantics are open |
 | Incident | id, family/subtype, location, occurrence time, state, revision, created/updated metadata | Shared core; module detail is family-specific |
 | Workflow action | action, actor, reason, timestamp, prior/resulting state | Append-only evidence of an allowed transition |
 | Evidence | id, media metadata, capture/receipt timestamps, provenance, upload status | Binary storage implementation is open |
@@ -110,15 +111,16 @@ These conventions make the conceptual API testable; none are established by the 
 | `POST /api/v1/incidents` | Create draft; returns `201` with incident representation and revision | Assigned RPO, allowed project/family |
 | `GET /api/v1/incidents/{id}` | Incident and permitted module details | RPO denied after submit; PM accident access is read-only |
 | `PATCH /api/v1/incidents/{id}` | Partial fields in caller's editable section | Draft/state/field ownership checked; requires `If-Match` |
-| `POST /api/v1/incidents/{id}/submit` | Validate required fields and submit | RPO draft; creates CRO task and audit event |
-| `POST /api/v1/incidents/{id}/actions` | `approve`, `return`, or `reopen` plus reason/comment | Allowed transition only; action role, module, state, and scope checked |
+| `POST /api/v1/incidents/{id}/submit` | Validate required fields and submit | RPO draft; creates completion-stage task for CRO or Corridor Manager according to toggle and audit event |
+| `POST /api/v1/incidents/{id}/actions` | `approve`, `return`, or `reopen` plus reason/comment | Server enforces state, scope, and active HO roster for the final approval action |
 | `POST /api/v1/incidents/{id}/evidence` | Accept evidence metadata and content (or an approved chunked-upload protocol); return evidence id/status | Incident write permission; camera/watermark/count/size rules validated; storage mechanism is undecided |
 | `GET /api/v1/incidents/{id}/audit` | Authorized audit page | Read-only and scope-filtered |
 | `POST /api/v1/sync/batches` | Ordered offline operations, each with client idempotency key and base revision | Each item is authorized independently; returns per-item accepted/conflict/rejected result |
-| `POST /api/v1/permits`; `POST /api/v1/permits/{id}/checks` | Create permit/checklist response | Project Manager authorization and assigned Maintenance/Safety checks; lifecycle needs approval |
+| `POST /api/v1/permits`; `POST /api/v1/permits/{id}/checks` | Create permit/checklist response | Project Manager authorization and assigned Maintenance/Safety checks precede the required HO final stage; exact sequence needs approval |
 | `POST /api/v1/encroachments/{id}/milestones` | Append notice/removal/cost-recovery event | Corridor assignment; printed date and recorded date are both required |
 | `POST /api/v1/reports/{reportCode}/exports` | Request report for period/scope; return export job/status | Scope, report permission, template availability/version checked |
 | `GET` / `POST /api/v1/admin/users`; `GET` / `POST` / `PATCH /api/v1/admin/role-templates`; `GET` / `POST` / `PATCH /api/v1/admin/assignments` | Manage dynamic users, role templates, and scoped assignments | Admin capability proposed; exact delegation and approval rules open |
+| `GET` / `PATCH /api/v1/admin/workflow-settings/{scopeId}` | Read/update CRO toggle and HO final-approver user list for a workflow scope | Conceptual endpoint; editor/reviewer, scope, effective time, and list-selection semantics are open; every change is audited |
 | `GET /api/v1/masters/{name}` | Read permitted master values | Organization scope; write operations require approved Admin policy |
 
 The list is a proposed starting surface, not a complete endpoint commitment. In particular, payloads for all 21 RPO fields, CRO report sections, each module, checklist answers, exports, and binary transfer need to be traced against the source files before implementation.
@@ -196,7 +198,24 @@ Content-Type: application/json
 {"comment": null}
 ```
 
-On successful validation, a conceptual response is `202 Accepted` with the resulting `PENDING_CRO` state, a new revision, server `receivedAt`, and the CRO task/deadline. If required photos or casualty validation fail, return `422` with stable field errors; do not partially transition the incident. If another accepted write changed the revision, return `409` and the latest revision only if the caller is still authorized to read it.
+On successful validation, a conceptual response is `202 Accepted` with the completion-stage state (the source calls it `PENDING_CRO`), a new revision, server `receivedAt`, and a task/deadline assigned to CRO or Corridor Manager according to the active toggle. If required photos or casualty validation fail, return `422` with stable field errors; do not partially transition the incident. If another accepted write changed the revision, return `409` and the latest revision only if the caller is still authorized to read it.
+
+## Example workflow settings (illustrative)
+
+```json
+{
+  "scope": {
+    "type": "corridor",
+    "id": "corridor-identifier"
+  },
+  "croStageEnabled": false,
+  "hoFinalApproverUserIds": ["ho-user-17", "ho-user-29"],
+  "effectiveFrom": "2026-11-18T00:00:00+05:30",
+  "revision": 4
+}
+```
+
+The toggle changes only the completion-stage owner; it never bypasses the HO final stage. When disabled, the Corridor Manager's completion action routes directly to HO without a separate Corridor review. This proposal does not decide whether a listed HO approver acts alone or whether all/a quorum/sequence is required, which level may edit settings, whether changes apply to in-flight records, or whether the same person can complete and later approve.
 
 ## Offline sync and conflict rules
 
@@ -243,10 +262,10 @@ This is the source baseline, not a complete policy:
 |---|---|---|---|
 | RPO | Create own-project draft, submit; no view after submit | Capture/submit according to assigned scope | Android only in baseline |
 | CRO | Complete assigned descriptive report | Complete assigned report | PWA |
-| Corridor | Review/approve accident; record notice stages | Intermediate review and notice recording | PWA |
-| Project Manager | Read-only accident access | Approve B/C/E | Authorizes permits; A2 incident authority is unresolved |
-| HO | No A1 approval gate; reopen only | Final approval; may reopen closed cases | PWA |
-| Admin | Configure users/masters/workflows/templates; may reopen | Same | Exact data access is not specified |
+| Corridor | Source review; completes CRO stage when toggle is off and then routes directly to HO | Pre-HO review when applicable; record notice stages | PWA; no implied separate review after its completion fallback |
+| Project Manager | Source read-only accident observer | Existing source approvals before HO where retained | Authorizes permits; exact pre-HO route and A2 authority remain open |
+| HO | Final approval for every workflow through configured roster; may reopen closed cases | Same final-approver rule | Roster selection and route before HO are open |
+| Admin | Configure users/masters/workflows/templates; may reopen | Same | Not an HO final approver by implication |
 | Maintenance/Safety | Work-zone checks only as assigned | Not a general approval role | PWA baseline |
 
 All roles remain subject to organization scope, record state, and field ownership. PIU, PD, and SP are not API users.

@@ -12,7 +12,7 @@ The source proposes one incident management system for NHIT/NHIPPL operations to
 |---|---|---|
 | Incident families | Accidents (road-user and work-zone), Encroachment (temporary and permanent), Violence, and Public Unrest are in scope. Natural Disaster is not a full module. | Sections 2, 4, 5, 7, 8 |
 | Channels | Android-native offline-first capture for RPO; PWA for office roles. iOS is excluded. | Sections 2, 3, 10 |
-| Accident | RPO triage expanded by CRO into an internal descriptive report; road-user flow uses RPO -> CRO -> Corridor, with PM as observer, auto-close, and restricted reopen. No statutory MoRTH form in scope. | Sections 2, 4, 5 |
+| Accident | Source baseline: RPO triage expanded by CRO into an internal descriptive report; A1 includes Corridor review, PM observer, auto-close, and restricted reopen. User-directed design adds a CRO/Corridor Manager toggle and HO final approval for every workflow; no statutory MoRTH form in scope. | Sections 2, 4, 5 plus later user decisions |
 | Work zone | Link to an active work permit; live-road and work-at-height checklists; Maintenance Manager and Safety Officer checks; incident suspends permit and raises SWI. | Sections 2, 4, 6 |
 | Encroachment | Temporary removal is a fast, same-shift flow. Permanent cases use dated notice, removal, and cost-recovery milestones; issuing parties act offline and Corridor logs evidence. | Sections 2, 7 |
 | Violence / unrest | Common master chain with Security or Management co-approver, respectively. | Sections 4, 8 |
@@ -22,7 +22,15 @@ The source proposes one incident management system for NHIT/NHIPPL operations to
 
 ## Approval and lifecycle requirements
 
-The source baseline says RPO entry within 1 hour, CRO completion within 5 days, Corridor review within 48 hours, accident auto-close 3 days after Corridor approval, and HO/Admin-only reopen. Non-accident modules proceed to Project Manager and HO approval. The source does not resolve whether SLA days are calendar or working days (Q6).
+The source baseline says RPO entry within 1 hour, CRO completion within 5 days, Corridor review within 48 hours, accident auto-close 3 days after Corridor approval, and HO/Admin-only reopen. The user has since directed that every workflow end with a final approval by a configurable HO-level approver list; this supersedes the draft source's earlier A1/non-accident approval distinction for the target design. The CRO stage is configurable: CRO completes it when enabled, and Corridor Manager completes it when disabled and routes directly to HO without a separate Corridor review. The source's 48-hour Corridor target therefore does not add a Corridor review to the disabled-toggle path; its applicability and clock boundary on the enabled path remain open. The source does not resolve whether SLA days are calendar or working days (Q6); the auto-close timer's start point under the new HO gate also needs confirmation.
+
+## Additional user-directed requirements (beyond source v1.5)
+
+These are direct project decisions and are not present in the unchanged root scope document:
+
+- **CRO availability toggle:** configuration selects whether CRO completes the CRO stage or the Corridor Manager performs those completion duties. When disabled, the Corridor Manager routes directly to HO without a separate Corridor review. The toggle does not select or remove the final HO approver.
+- **HO final-approver roster:** every in-scope workflow terminates at the configured HO-level final-approver list. The CRO-disabled fallback routes directly from Corridor Manager completion to HO, with no separate Corridor review. For the enabled path, exact stage ordering before HO, roster selection semantics (one listed approver, all, quorum, or sequence), configuration scope/effective-time behavior, and self-review controls remain open.
+- **Segregation of duties:** whether the Corridor Manager completing the CRO stage may also be selected as the HO approver is unresolved; do not treat same-identity final approval as permitted or prohibited until policy is decided.
 
 ## Explicit exclusions and deferrals
 
@@ -65,19 +73,19 @@ Additional detailed-design questions are listed after Q11 in the source (languag
 2. **Blank NHAI templates:** these are an explicit P0 dependency in Section 11.2 and Risk R11. The source permits provisional development against current report files, but export styling cannot be finalized until the blank templates are supplied per report.
 3. **Work-zone approval:** the A2 baseline and Q2 recommendation conflict; keep permission policy configurable until a decision is recorded.
 4. **Referenced materials:** the source refers to `.opencode/plan/incident-management-scope-v0.2.md`, `Reports/`, and `Formats/`. These are not root entries in the current repository tree; the reports ZIP may bundle related files, but its contents need inventory.
-5. **HO/Admin approval wording:** Section 3 groups “HO / Admin” for final approval, while Section 4.2 and the assumptions describe HO as the non-accident final approver. Reconcile whether Admin is an alternate approver or only an administrator/reopener before granting that capability.
+5. **Source/user approval change:** source v1.5 describes HO/Admin wording and an A1 flow without an HO gate; the later user-directed decision makes the configured HO list the final approver for every workflow. Keep the root source unchanged, apply the newer decision in this documentation, and do not infer that Admin is an HO final approver.
 
 ## Source files
 
-The root [scope document](../IMS-Scope-Document.md) is the readable source of truth for this planning set. Other tracked references include the accident mobile-interface workbook, road-user process-flow PDF, permit SOP and forms, report/format ZIP, MoRTH reporting PDF, a PDF scope copy, and two images. Binary reference contents and the archive inventory should be reviewed before detailed field/report mappings are treated as verified.
+The root [scope document](../IMS-Scope-Document.md) is the readable source of truth for the original v1.5 baseline; later user-directed requirements are recorded separately in this planning set and do not rewrite that source. Other tracked references include the accident mobile-interface workbook, road-user process-flow PDF, permit SOP and forms, report/format ZIP, MoRTH reporting PDF, a PDF scope copy, and two images. Binary reference contents and the archive inventory should be reviewed before detailed field/report mappings are treated as verified.
 
 ## User and operational journey
 
 1. **Capture:** RPO creates the occurrence record at the scene on Android, with GPS, device timestamp, and camera evidence. Offline drafts remain queued until synchronization.
-2. **Complete:** CRO enriches the brief field record into the internal descriptive accident report and supplies required department data.
-3. **Review:** Corridor validates the record, comments/edits, and makes the accountable accident approval. For other modules, Corridor is an intermediate approver.
-4. **Observe or approve:** PM receives accident notifications and observes accidents under the baseline; PM approves encroachment, violence, and public unrest. HO is the final approver for these non-accident modules.
-5. **Close/reopen:** accidents auto-close three days after Corridor approval; only HO/Admin may reopen. Non-accident closure follows PM/HO approvals.
+2. **Complete:** the CRO toggle routes the completion stage to CRO when enabled or to Corridor Manager when disabled; either route completes the descriptive accident report and required department data.
+3. **Pre-HO route:** with CRO enabled, the configured route before HO remains open and may include source-defined Corridor/other review stages. With CRO disabled, Corridor Manager completion goes directly to HO with no separate Corridor review. Required checks/co-approvals remain in scope and need mapping.
+4. **Final approval:** every in-scope workflow is routed to the configured HO final-approver list. The PM's role and other enabled-toggle pre-HO stages remain subject to source conflicts and open decisions.
+5. **Close/reopen:** the source's A1 auto-close rule is three days after Corridor approval, but its trigger must be reconciled with the new HO-final stage. The source restricts reopening to HO/Admin.
 6. **Follow supporting work:** a work-zone record links to a permit and safety checks; a permanent encroachment record accrues dated notice milestones. Notifications, audit, and reports are derived from the same authorized record.
 
 Detailed actors, transition tables, timers, and exceptions are in [Workflows](workflows.md).
@@ -152,6 +160,9 @@ Before report implementation is called production-ready:
 
 | Decision | Source status | Required before |
 |---|---|---|
+| CRO stage availability toggle | Direct user requirement; toggle's scope/default and in-flight behavior open | Workflow configuration and task routing |
+| HO final-approver list | Direct user requirement for every workflow; enabled-toggle route before HO and list-selection semantics open | Authorization matrix and workflow implementation |
+| Same-person completion/HO approval | Open segregation-of-duties decision when Corridor Manager completes the CRO stage and may also appear on HO roster | Access policy and approval enforcement |
 | Natural Disaster minimal record | Q1 recommends yes; not approved | Data model/report baseline |
 | Project Manager approves A2? | Section 4.2 says view-only; Q2 recommends approval | Authorization matrix and workflow implementation |
 | SPV/Vendor field 22 | Q3 recommends yes | RPO field contract and routing |

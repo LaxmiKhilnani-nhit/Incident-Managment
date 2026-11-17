@@ -1,6 +1,14 @@
 # End-to-end workflows
 
-**Status:** Source-derived from [IMS Scope Document v1.5](../IMS-Scope-Document.md). The source is a draft; unresolved decisions are called out below.
+**Status:** Derived from [IMS Scope Document v1.5](../IMS-Scope-Document.md) and extended by later user-directed CRO-toggle and HO-final-approver requirements. The source remains a draft; unresolved decisions are called out below.
+
+## User-directed routing rules
+
+These later user decisions extend the unchanged v1.5 source:
+
+- The **CRO availability toggle** controls only who completes the CRO stage: CRO when enabled; Corridor Manager when disabled. When disabled, the Corridor Manager's completion routes directly to HO without a separate Corridor review step.
+- **Every in-scope workflow ends at the configured HO final-approver list.** For the enabled-toggle path, the exact route and order before HO are open. Roster selection semantics (one listed approver, all, quorum, or sequence) are also open.
+- Whether a Corridor Manager who completed the stage may also be selected as the HO approver is unresolved segregation-of-duties policy. Do not infer either permission or prohibition. Other source-required co-approvals/checks must not be dropped; their relation to direct HO routing needs explicit mapping.
 
 ## Road-user accident (A1)
 
@@ -8,20 +16,24 @@
 flowchart LR
   A["RPO creates on Android<br/>within 1 hour"] --> B["Submit locks field record<br/>RPO view revoked"]
   B --> P["Notify PM on submission<br/>read-only observer; no approval gate"]
-  B --> C["CRO completes descriptive report<br/>within 5 days"]
-  C --> D["Corridor reviews / edits / approves<br/>within 48 hours"]
-  D --> F["System auto-closes<br/>3 days after approval"]
+  B --> T{"CRO toggle"}
+  T -- enabled --> C["CRO completes descriptive report<br/>source target: 5 days"]
+  T -- disabled --> M["Corridor Manager completes CRO stage"]
+  C --> R["Pre-HO route<br/>stage order/owners need confirmation"]
+  R --> H["Configured HO final-approver list"]
+  M -->|direct to HO; no Corridor review| H
+  H --> F["System closes per approved timer<br/>A1 timer origin needs reconciliation"]
   F --> G["HO or Admin reopens only"]
-  G --> C
+  G --> T
 ```
 
 1. RPO creates a basic incident on the Android app, own project only; GPS, device time, and camera evidence are captured. Submit validates and locks the record and revokes RPO view access.
-2. CRO completes the descriptive accident report using department inputs, vehicle/casualty details, emergency response, damage, and cause analysis. The source sets a 5-day limit.
-3. Corridor Incharge reviews, comments/edits, and makes the accountable accident approval within 48 hours of CRO submission.
-4. Project Manager is notified and may view accident records/evidence but cannot approve, edit, or return them under the A1 baseline.
-5. System auto-closes three days after approval. HO/Admin alone may reopen; the record returns to CRO, and the 5-day/48-hour cycle repeats after reopening.
+2. The toggle routes the CRO completion work (department inputs, vehicle/casualty details, response, damage, and cause analysis) to CRO or Corridor Manager. The source's 5-day target belongs to this completion stage; confirm whether its start/stop semantics change when the fallback actor is used.
+3. With the toggle enabled, the pre-HO path must be configured and approved. The source A1 baseline includes Corridor review within 48 hours and a read-only PM observer; the newer user direction adds HO as final approver. With the toggle disabled, Corridor Manager completion routes directly to HO with no separate Corridor review. The 48-hour target's applicability to the enabled path and other pre-HO work remains open.
+4. Route the workflow to an eligible member of the configured HO final-approver list. The roster's one/all/quorum/sequence rule is not yet defined.
+5. The source says A1 auto-closes three days after Corridor approval. Reconcile this timer's trigger with the new mandatory HO final gate before configuration. HO/Admin alone may reopen under the source rule; restart behavior remains subject to the workflow policy.
 
-No Project Manager or HO approval gate is in this A1 flow. Confirm calendar versus working-day meaning before configuring SLAs (Q6).
+Confirm calendar versus working-day meaning before configuring SLAs (Q6). The new HO gate supersedes the source's statement that A1 has no HO approval stage; do not edit the source document to hide this change.
 
 ## Work-zone accident (A2) and permit
 
@@ -38,11 +50,11 @@ An incident linked to a permit suspends it, raises a Stop Work Instruction (SWI)
 
 ## Violence and Public Unrest
 
-Both use RPO capture, CRO completion, Corridor review, Project Manager approval, and HO approval. Violence adds Security co-approval; Public Unrest adds Management co-approval. Capture the module-specific people, harm, property, police, crowd, road-blockage, and operational-impact details identified in source Section 8.
+Both use RPO capture, a CRO completion stage (actor selected only by the CRO toggle), source-defined co-approval/review roles, and the configured HO final-approver list. Violence adds Security co-approval; Public Unrest adds Management co-approval. The route and order before HO are open. Capture the module-specific people, harm, property, police, crowd, road-blockage, and operational-impact details identified in source Section 8.
 
 ## Natural Disaster and cross-flow states
 
-The full Natural Disaster module is out of scope because its SOP is not supplied. Q1 recommends a minimal record for downtime reporting, but this remains a decision. Other source lifecycle states include DRAFT, SUBMITTED, PENDING_CRO, PENDING_CORRIDOR, APPROVED, AUTO_CLOSED, REOPENED, PENDING_PROJECT_MANAGER, PENDING_HO, CLOSED, REWORK_REQUIRED, ESCALATED, CANCELLED, and SWI_ACTIVE (work zone only).
+The full Natural Disaster module is out of scope because its SOP is not supplied. Q1 recommends a minimal record for downtime reporting, but this remains a decision; if later approved as an in-scope workflow, it must end at the configured HO list. Other source lifecycle states include DRAFT, SUBMITTED, PENDING_CRO, PENDING_CORRIDOR, APPROVED, AUTO_CLOSED, REOPENED, PENDING_PROJECT_MANAGER, PENDING_HO, CLOSED, REWORK_REQUIRED, ESCALATED, CANCELLED, and SWI_ACTIVE (work zone only).
 
 ## Common controls
 
@@ -53,27 +65,31 @@ Server-side scope and role checks apply to every operation. Audit state changes 
 | From | Actor / action | To | Timer and start event | Validation / side effects |
 |---|---|---|---|---|
 | No record | RPO saves draft | `DRAFT` | RPO must enter within 1 hour of receiving accident information | Own project; capture date/time, chainage, direction, road type, GPS, category, crash/nature/severity, counts, photos, description |
-| `DRAFT` | RPO submits | `SUBMITTED` then `PENDING_CRO` | Stops RPO 1-hour capture clock; starts CRO 5-day clock from incident creation | Required fields; lock submission; revoke RPO view; notify PM as read-only observer; create audit and CRO queue item |
-| `PENDING_CRO` | CRO completes and submits | `PENDING_CORRIDOR` | 5 days from incident creation; next 48-hour clock starts on CRO submission | Require report identity, location, vehicles, injured persons, cause analysis; reconcile Part 2 counts with Part 1; retain both values and justify severity changes |
-| `PENDING_CORRIDOR` | Corridor approves | `APPROVED` | Review within 48 hours after CRO submission | Record decision/comment and edits as audit events; no PM approval gate |
-| `APPROVED` | System scheduler closes | `AUTO_CLOSED` | Exactly 3 days after approval in the source; calendar/business semantics open | Record system actor and close time; no manual approval gate |
-| `AUTO_CLOSED` | HO/Admin reopens | `REOPENED`, then CRO work resumes | No fixed duration | Only HO/Admin; record reason; restart CRO 5-day and Corridor 48-hour clocks on the reopened cycle; new approval starts fresh auto-close clock |
+| `DRAFT` | RPO submits | `SUBMITTED` then completion-stage state (`PENDING_CRO` in source) | Stops RPO 1-hour capture clock; starts completion-stage 5-day clock from incident creation | Required fields; lock submission; revoke RPO view; notify PM as read-only observer; create task for CRO or Corridor Manager from toggle |
+| Completion stage (toggle enabled) | CRO completes and submits | Pre-HO review state(s) | Source target: 5 days from incident creation | Require report identity, location, vehicles, injured persons, cause analysis; reconcile Part 2 counts with Part 1; retain both values and justify severity changes. Record actual actor |
+| Completion stage (toggle disabled) | Corridor Manager completes and submits | `PENDING_HO` directly; no separate Corridor review | Source 5-day completion target applies to the stage; confirm behavior on reopened cycles | Same required report validation; record Corridor Manager as actor, not CRO. Do not infer whether this identity may also be on HO roster |
+| Pre-HO review (enabled path only) | Source Corridor review and any configured preceding actors | `PENDING_HO` after approved pre-HO route | Source Corridor target: 48 hours after CRO submission; applicability/clock boundary need confirmation | Record each review, decision/comment, edits, actor, and reason; enabled-path actor overlap rules remain open |
+| `PENDING_HO` | Eligible member of configured HO list gives final decision | `APPROVED` | No HO-stage duration is specified | Validate active roster membership and approved roster-selection rule; audit approver, decision, reason, and configuration version |
+| `APPROVED` | System scheduler closes | `AUTO_CLOSED` | Source says 3 days after Corridor approval; whether the timer starts at Corridor or HO approval is open | Record system actor and close time; never skip the required HO decision |
+| `AUTO_CLOSED` | HO/Admin reopens | `REOPENED`, then completion stage resumes | No fixed duration | Only HO/Admin under source rule; record reason; toggle selects completion actor; reset 5-day/48-hour clocks only per approved policy |
 
-`SUBMITTED` may be a transient state; the source Section 4.3 lists both `SUBMITTED` and `PENDING_CRO`. State persistence and clock boundary semantics should be decided during detailed design.
+`SUBMITTED` may be a transient state; the source Section 4.3 lists both `SUBMITTED` and `PENDING_CRO`. Whether `PENDING_CRO` remains the state label when Corridor Manager performs that stage, and the exact pre-HO states, need detailed design. State persistence and clock boundary semantics are open.
 
 ```mermaid
 stateDiagram-v2
   [*] --> DRAFT
   DRAFT --> SUBMITTED: RPO submits
-  SUBMITTED --> PENDING_CRO: Create CRO work item
-  PENDING_CRO --> PENDING_CORRIDOR: CRO submits
-  PENDING_CORRIDOR --> APPROVED: Corridor approves
-  APPROVED --> AUTO_CLOSED: Scheduler after 3 days
+  SUBMITTED --> PENDING_CRO: Toggle assigns CRO or Corridor Manager
+  PENDING_CRO --> PRE_HO_REVIEW: CRO enabled; CRO submits
+  PENDING_CRO --> PENDING_HO: CRO disabled; Corridor Manager submits directly
+  PRE_HO_REVIEW --> PENDING_HO: Configured enabled-path route completes
+  PENDING_HO --> APPROVED: HO roster final decision
+  APPROVED --> AUTO_CLOSED: Scheduler; timer origin open
   AUTO_CLOSED --> REOPENED: HO or Admin reopens
-  REOPENED --> PENDING_CRO: Restart CRO cycle
+  REOPENED --> PENDING_CRO: Toggle assigns completion actor
 ```
 
-The diagram omits `REWORK_REQUIRED`, return targets, and `ESCALATED`/`CANCELLED` transitions because the source names those states but does not define every transition or clock effect.
+`PRE_HO_REVIEW` is a conceptual state, not a source enum. The diagram omits `REWORK_REQUIRED`, return targets, and `ESCALATED`/`CANCELLED` transitions because the source names those states but does not define every transition or clock effect. The new HO gate is user-directed; the states/route before it remain open.
 
 ### A1 capture validation
 
@@ -105,7 +121,8 @@ The source specifies this sequence but not permit-state codes. Labels below are 
 | `SAFETY_VERIFIED` -> `ACTIVE` | Project Manager authorizes work | Authorization is distinct from approval of an A2 incident | No authorization SLA specified | Authorizer, decision time, conditions, validity window |
 | `ACTIVE` -> `SUSPENDED` + `SWI_ACTIVE` | System/workflow on a linked incident; Safety Officer records stop-work | Incident link, failed checks, and SWI reason; permit close-out is blocked while incident is open | Trigger is incident occurrence; response time is not specified | Triggering incident, previous permit state, SWI actor/time, reason, notification |
 | `SUSPENDED` -> `ACTIVE` | Safety Officer re-verifies after corrective action; authorized resumption required | Correction evidence and cleared stop-work condition; exact resumption authority is not specified | No correction/resumption SLA specified | Corrective action, re-check, decision, actor, timestamps |
-| `ACTIVE` -> `CLOSE_OUT_PENDING` -> `CLOSED` | Initiator surrenders; Safety Officer verifies close-out | Clear area, head count, outstanding checks; block while linked incident remains open | Validity expiry/extension behavior needs detailed design | Surrender time, close-out checks, area/head-count result, approver, closure time |
+| `ACTIVE` -> `CLOSE_OUT_PENDING` | Initiator surrenders; Safety Officer verifies close-out | Clear area, head count, outstanding checks; block while linked incident remains open | Validity expiry/extension behavior needs detailed design | Surrender time, close-out checks, area/head-count result, actor, time |
+| `CLOSE_OUT_PENDING` -> configured HO final-approver list -> `CLOSED` | Route the permit workflow to an eligible HO approver | No HO approval deadline specified | This final gate is user-directed; its relationship to the PM's pre-work authorization and exact route is open | HO actor/decision/reason, permit revision, closure time |
 
 Weather or method changes require change control; the source does not define the exact transition or approver. A failed checklist, missing evidence, expired permit, or overdue action must not silently become an authorized state; the operational exception and escalation policy need approval.
 
@@ -113,16 +130,15 @@ Weather or method changes require change control; the source does not define the
 
 An A2 record is an OHS case by default, must reference an active permit when permitted work is involved, and routes through the additional Maintenance/Safety checks. Crash type plus SPV/Vendor Member Involved should determine the A1/A2 route; Q3 field 22 is recommended but open. If no active permit exists, capture it as a non-permitted activity, require a reason, and route to Safety. If an incident occurs against a permit, set it to suspended, create an SWI, retain failed checklist items in the incident dossier, and block permit close-out until incident closure.
 
-**Unresolved transition:** Section 4.2 says PM is view-only on A2; Q2 recommends PM approval for A2. The API/workflow must not emit a PM approval task for A2 until approved. Section 6 separately says PM authorizes the permit itself.
+**Unresolved transition:** Section 4.2 says PM is view-only on A2; Q2 recommends PM approval for A2. The route and actors before the now-required HO final approval remain open. The API/workflow must not emit a PM approval task for A2 until approved. Section 6 separately says PM authorizes the permit itself.
 
 | Transition (conceptual) | Actor / action | Timer | Validation / exception | Audit evidence |
 |---|---|---|---|---|
 | No record -> `DRAFT` | RPO captures work-zone occurrence | A2-specific capture deadline not stated; do not assume A1's 1-hour limit | Capture source-required incident data and link permit when applicable | RPO, capture/device time, location, evidence, local request ID |
-| `DRAFT` -> `PENDING_CRO` | RPO submits | A2-specific CRO deadline not stated; confirm whether A1's 5-day limit applies | Require active permit reference for permitted work; if no active permit, require non-permitted-activity reason and route to Safety | Submission, permit reference/reason, validation result, queue creation |
-| `PENDING_CRO` -> `PENDING_CORRIDOR` | CRO completes and submits | A2-specific review deadlines not stated | Descriptive record and linked checklist/incident evidence; field-level completion rules need source mapping | CRO, completion time, values changed, reason, attachments |
-| `PENDING_CORRIDOR` -> Maintenance/Safety checks | Corridor reviews; Maintenance Manager and Safety Officer verify work-zone facts | No A2-specific timers stated | Preserve failed checklist items; linked incident suspends permit and raises SWI | Review decisions, inspection versus entry times, failed checks, SWI |
-| Checks complete -> PM observer or approval decision | Project Manager receives/view record under Section 4.2; Q2 recommends an approval gate | No timer specified | **Unresolved:** do not make PM approval a mandatory transition until Q2 is decided | Notification/read receipt if implemented; approval event only if approved |
-| Approved incident -> close / reopen | System closes according to approved accident policy; HO/Admin reopen authority is stated generally | Whether A1's 3-day auto-close applies to A2 is not explicit | Do not close linked permit while incident remains open; reopen restart rules need confirmation | System close event, linked permit status, reopening actor/reason, restarted task/timers |
+| `DRAFT` -> completion stage | RPO submits; CRO toggle selects CRO or Corridor Manager as completion actor | A2-specific completion deadline not stated; confirm whether A1's 5-day target applies | Require active permit reference for permitted work; if no active permit, require non-permitted-activity reason and route to Safety | Submission, toggle/config version, actual actor, permit reference/reason, validation result, queue creation |
+| CRO enabled: completion -> configured pre-HO route -> HO | CRO completes descriptive record; enabled-path actors remain to be configured | Timer follows approved workflow configuration | Preserve linked checklist/incident evidence; A2 PM authority conflict (Q2) remains open | Completion actor, values changed, review decisions, inspection versus entry times, failed checks, SWI |
+| CRO disabled: completion -> HO directly | Corridor Manager completes descriptive record and task routes directly to HO; no separate Corridor review | A2-specific completion deadline not stated; confirm whether A1's 5-day target applies | Required Maintenance/Safety checks remain in scope; whether they are prerequisites or attached evidence must be mapped without inserting a Corridor review | Toggle/config version, actual completion actor, evidence/check results, HO queue assignment |
+| HO final decision -> close / reopen | Configured HO approver decides; system closes under the approved policy | Whether A1's 3-day auto-close applies to A2 is not explicit | Do not close linked permit while incident remains open; reopening restart rules need confirmation | HO actor/decision/reason, system close event, linked permit status, reopening actor/reason |
 
 ## Encroachment transition specification
 
@@ -133,11 +149,13 @@ State labels below are proposed because the source defines an operational flow, 
 | Transition (conceptual) | Actor / action | Timer | Validation / exceptional path | Audit evidence |
 |---|---|---|---|---|
 | No record -> `RECORDED` | RPO records temporary encroachment | Capture time/shift; no entry SLA specified | Chainage/side, type/nature, action, responsible actor/team, before photo | RPO, event/capture/receipt times, location, category, before image |
-| `RECORDED` -> `REMOVED` -> `CLOSED` | Field team removes; RPO records outcome | Typically same shift; no formal SLA or escalation rule specified | After photo and removal action; if not removed same shift, retain open and flag for operational follow-up (exact owner/policy open) | Removal time, team, action, before/after evidence, closure actor |
+| `RECORDED` -> `REMOVED` -> HO final approval -> `CLOSED` | Field team removes; RPO records outcome; configured HO approver makes final decision | Typically same shift for removal; no HO approval deadline specified | After photo and removal action; if not removed same shift, retain open and flag for operational follow-up (exact owner/policy open) | Removal time, team, action, before/after evidence, HO actor/decision/reason, closure time |
 
 ### Permanent case and notice clocks
 
 The milestone progression and state labels below are conceptual; statutory notice periods are not supplied here. The notices/letters are issued outside IMS, and PIU, PD, and SP do not log in.
+
+Source V-B includes a CRO stage for encroachment. When the CRO toggle is disabled, Corridor Manager completes that stage and routes directly to the HO list, without a separate Corridor review. How this HO decision relates to the later offline notice, removal, and cost-recovery milestones—and whether the source PM approval remains before HO—needs explicit mapping; do not invent that ordering. The temporary flow has no separately specified CRO stage, so the toggle applies only if one is approved for it.
 
 | Transition (conceptual) | Issuer / IMS recorder | Required evidence / validation | Timer / exception | Audit evidence |
 |---|---|---|---|---|
@@ -147,7 +165,7 @@ The milestone progression and state labels below are conceptual; statutory notic
 | `PD_NOTICE_RECORDED` -> `SP_ASSISTANCE_RECORDED` | PD to SP / Corridor | Section 37 assistance request, reference/date/copy | Timing and status while awaiting response are open | Sender/recipient, reference, printed date, recorded time, proof |
 | `SP_ASSISTANCE_RECORDED` -> `REMOVAL_RECORDED` | Field team with police assistance / Corridor | Equipment/manpower, date/cost, before/after photos, panchnama | Record actual completion date; no duration specified | Participants, event time, cost, action, evidence |
 | `REMOVAL_RECORDED` -> `COST_RECOVERY_RECORDED` | Finance / PD / Corridor | Bill under Section 25, amount, recovery status | IMS tracks status; accounting execution is outside scope | Reference, amount, status, actor, dates |
-| Open case -> `CLOSED`, `REGULARIZED`, or `UNDER_APPEAL` | Corridor / PD (final authority unresolved) | Record outcome and supporting decision | Appeal pause/clock behavior and alternate terminal-state rules are Q5/open | Decision-maker, reason, source document, outcome/time |
+| Open case -> `PENDING_HO_FINAL` -> `CLOSED`, `REGULARIZED`, or `UNDER_APPEAL` | Corridor / PD record outcome; configured HO approver makes final decision | No HO approval deadline specified | Appeal pause/clock behavior and terminal-state rules are Q5/open; final approval applies to each outcome | Decision-maker, reason, source document, HO actor/decision, outcome/time |
 
 Each milestone is append-only evidence. Preserve `printedIssueDate`, `recordedAt`, `allowedPeriod`, and `documentReference` separately. Alert when a stage is overdue using an approved period; do not invent notice durations. Late entry must not reset the clock.
 
@@ -157,17 +175,18 @@ The source identifies the non-accident approval chain but does not define these 
 
 | Family / transition | Actor / action | Timer | Validation / exceptional path | Audit evidence |
 |---|---|---|---|---|
-| Violence: RPO -> CRO -> Corridor | RPO captures, CRO completes, Corridor reviews | No module-specific duration stated | Record people, weapon, injuries, property, CCTV, police/FIR, security deployment, and tolling impact; exact return/cancel rules open | Actor, state/stage change, values, evidence, review/comment, reason |
-| Violence: Corridor -> Security co-approval and PM -> HO | Security co-approves; PM and HO approve in source chain | No duration stated | Whether Security acts before/with/after PM is unspecified; do not infer sequence. Final close/reopen details need confirmation | Separate co-approval and approval actors/times, decisions, reasons |
-| Public Unrest: RPO -> CRO -> Corridor | RPO captures, CRO completes, Corridor reviews | No module-specific duration stated | Record crowd, blockade, direction/duration, cause/organizer, police, alternate route, toll impact; exact return/cancel rules open | Actor, state/stage change, values, evidence, review/comment, reason |
-| Public Unrest: Corridor -> Management co-approval and PM -> HO | Management co-approves; PM and HO approve in source chain | No duration stated | Co-approval order is unspecified; do not infer sequence. Final close/reopen details need confirmation | Separate co-approval and approval actors/times, decisions, reasons |
-| Natural Disaster | No approved in-scope workflow | Not applicable | Full module excluded until SOP is supplied; Q1's minimal downtime record is only a recommendation | If a minimal record is later approved, define audit requirements before implementation |
+| Violence: RPO -> completion stage | RPO captures; CRO toggle selects CRO or Corridor Manager | No module-specific duration stated | Record people, weapon, injuries, property, CCTV, police/FIR, security deployment, and tolling impact; exact return/cancel rules open | Actor, toggle version, state/stage change, values, evidence, reason |
+| Violence: completion -> HO | CRO enabled: pre-HO route open; CRO disabled: Corridor Manager routes directly to HO with no separate Corridor review | No duration stated | Security co-approval is source-required; whether it is before/parallel to HO, and whether PM's source approval remains, need mapping | Completion actor; any co-approval/review events; final HO actor/time/decision/reason |
+| Public Unrest: RPO -> completion stage | RPO captures; CRO toggle selects CRO or Corridor Manager | No module-specific duration stated | Record crowd, blockade, direction/duration, cause/organizer, police, alternate route, toll impact; exact return/cancel rules open | Actor, toggle version, state/stage change, values, evidence, reason |
+| Public Unrest: completion -> HO | CRO enabled: pre-HO route open; CRO disabled: Corridor Manager routes directly to HO with no separate Corridor review | No duration stated | Management co-approval is source-required; whether it is before/parallel to HO, and whether PM's source approval remains, need mapping | Completion actor; any co-approval/review events; final HO actor/time/decision/reason |
+| Natural Disaster | No approved in-scope workflow | Not applicable | Full module excluded until SOP is supplied; Q1's minimal downtime record is only a recommendation. If a workflow is approved, it must end at the configured HO list | Define audit requirements before implementation |
 
 ## Queue, notification, and audit behavior
 
 Proposed implementation interpretation, subject to approval:
 
 - On each accepted transition, create the next actor's queue item and notify that actor; project PM is notified of accident submissions as an observer.
+- The final approval task resolves against the configured HO roster. If no eligible approver can be resolved, keep the record pending and report a configuration error; do not silently skip the final gate.
 - Track the stage-entry time, due time, completion time, actor, and reason. A scheduler marks overdue items `ESCALATED` according to configured escalation policy; the source does not specify every recipient or interval.
 - Preserve a chronological audit event for create, edit, submit, approve, return, reopen, cancel, evidence upload, permit check, notice milestone, auto-close, and export.
 - Keep server receipt and device/event time distinct. Backdated data must be visible; detailed back-dating rules are open.
